@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wayground Quiz Scraper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Quiz Scraper</h1>
+    <p class="subtitle">Lấy dữ liệu từ Wayground</p>
+
+    <div id="status" class="status hidden"></div>
+
+    <div class="button-group">
+      <button id="scrapeBtn" class="btn btn-primary">
+        Bắt đầu chuyển đổi dữ liệu
+      </button>
+
+      <button id="downloadBtn" class="btn btn-secondary" disabled>
+        Tải xuống JSON
+      </button>
+    </div>
+
+    <div id="result" class="result hidden">
+      <h3>Kết quả:</h3>
+      <p id="titleInfo"></p>
+      <p id="questionCount"></p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
