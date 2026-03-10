@@ -1,0 +1,48 @@
+.container{
+    height: 270px;
+    width: 700px;
+    padding: 20px;
+    margin-top: 100px;
+    text-align: center;
+    border: 2px solid #1f2f98;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+
+}
+header{
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid black;
+}
+header>h1{
+    color: #1f2f98;
+    margin-bottom: 10px;
+    font-weight: 900;
+}
+header>p{
+    color: gray;
+}
+
+section{
+    margin-top: 40px;
+}
+.primary{
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+    text-decoration: none;
+}
+.register{
+    background: linear-gradient(45deg, #1f2f98, #3046cf);
+    color: white; 
+}
+.login{
+    border: 1px solid #1f2f98;
+    color: #1f2f98;
+}
+.primary:hover{
+    opacity: 0.9;
+}
