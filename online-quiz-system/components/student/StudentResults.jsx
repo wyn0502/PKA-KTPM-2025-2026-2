@@ -5,21 +5,29 @@ import { useAuth } from '@/lib/auth';
 import { demoApi } from '@/lib/supabase';
 import {
     History, Trophy, Calendar, CheckCircle2, XCircle,
-    Eye, EyeOff, BarChart3, Clock
+    Eye, EyeOff, BarChart3, Search
 } from 'lucide-react';
 
 export default function StudentResults() {
     const { user } = useAuth();
     const [results, setResults] = useState([]);
     const [expandedId, setExpandedId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (user) setResults(demoApi.getResults(user.id));
     }, [user]);
 
+    const filtered = results.filter(r => {
+        if (!searchQuery) return true;
+        return r.exam?.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
     const avg = results.length > 0
         ? (results.reduce((sum, r) => sum + r.score, 0) / results.length).toFixed(1)
         : '0';
+
+    const passCount = results.filter(r => r.score >= 5).length;
 
     return (
         <div>
@@ -49,27 +57,36 @@ export default function StudentResults() {
                     <div className="stat-card">
                         <div className="stat-icon warning"><CheckCircle2 size={24} /></div>
                         <div className="stat-info">
-                            <div className="stat-value">{results.filter(r => r.score >= 5).length}</div>
+                            <div className="stat-value">{passCount}/{results.length}</div>
                             <div className="stat-label">Bài đạt</div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {results.length === 0 ? (
+            {results.length > 1 && (
+                <div className="filter-bar">
+                    <div className="search-input">
+                        <Search size={18} />
+                        <input placeholder="Tìm theo tên bài thi..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    </div>
+                </div>
+            )}
+
+            {filtered.length === 0 ? (
                 <div className="card">
                     <div className="empty-state">
                         <div className="empty-state-icon"><History size={28} /></div>
-                        <h3 className="empty-state-title">Chưa có kết quả nào</h3>
-                        <p className="empty-state-text">Hãy hoàn thành một bài thi để xem kết quả tại đây</p>
+                        <h3 className="empty-state-title">{searchQuery ? 'Không tìm thấy kết quả' : 'Chưa có kết quả nào'}</h3>
+                        <p className="empty-state-text">{searchQuery ? 'Thử từ khóa khác' : 'Hãy hoàn thành một bài thi để xem kết quả'}</p>
                     </div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {results.map(r => (
+                    {filtered.map(r => (
                         <div key={r.id} className="card" style={{ padding: 20 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 200 }}>
                                     <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: 6 }}>
                                         {r.exam?.title || 'Bài thi'}
                                     </h3>
@@ -88,9 +105,11 @@ export default function StudentResults() {
                                     <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '1rem', padding: '8px 16px' }}>
                                         {r.score}/10
                                     </span>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => setExpandedId(expandedId === r.id ? null : r.id)} title="Xem chi tiết">
-                                        {expandedId === r.id ? <EyeOff size={18} /> : <Eye size={18} />}
-                                    </button>
+                                    {r.answers_detail && (
+                                        <button className="btn btn-ghost btn-sm" onClick={() => setExpandedId(expandedId === r.id ? null : r.id)} title="Xem chi tiết">
+                                            {expandedId === r.id ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 

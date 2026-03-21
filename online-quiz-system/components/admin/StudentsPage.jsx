@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { demoApi } from '@/lib/supabase';
+import { useToast } from '@/lib/toast';
 import {
     GraduationCap, Plus, Pencil, Trash2, X, Search,
-    Mail, Hash, UserPlus, Shield
+    Mail, UserPlus, Download
 } from 'lucide-react';
 
 export default function StudentsPage() {
@@ -13,12 +14,11 @@ export default function StudentsPage() {
     const [editing, setEditing] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [form, setForm] = useState({ full_name: '', email: '', student_id: '', role: 'student' });
+    const toast = useToast();
 
     useEffect(() => { loadData(); }, []);
 
-    const loadData = () => {
-        setUsers(demoApi.getUsers());
-    };
+    const loadData = () => setUsers(demoApi.getUsers());
 
     const students = users.filter(u => u.role === 'student');
     const filtered = students.filter(s => {
@@ -32,15 +32,19 @@ export default function StudentsPage() {
     });
 
     const handleSave = () => {
-        if (!form.full_name.trim() || !form.email.trim()) return;
+        if (!form.full_name.trim()) { toast.error('Vui lòng nhập họ tên'); return; }
+        if (!form.email.trim()) { toast.error('Vui lòng nhập email'); return; }
+
         if (editing) {
             demoApi.updateUser(editing.id, form);
+            toast.success('Cập nhật thông tin thành công');
         } else {
             const result = demoApi.addUser(form);
             if (!result.success) {
-                alert(result.error);
+                toast.error(result.error);
                 return;
             }
+            toast.success('Thêm sinh viên thành công');
         }
         closeModal();
         loadData();
@@ -64,12 +68,13 @@ export default function StudentsPage() {
     };
 
     const handleDelete = (user) => {
-        if (user.email === 'admin@quiz.com' || user.email === 'student@quiz.com') {
-            alert('Không thể xóa tài khoản demo!');
+        if (['admin@quiz.com', 'student@quiz.com'].includes(user.email)) {
+            toast.warning('Không thể xóa tài khoản demo');
             return;
         }
         if (confirm(`Xóa sinh viên "${user.full_name}"?`)) {
             demoApi.deleteUser(user.id);
+            toast.success('Đã xóa sinh viên');
             loadData();
         }
     };
@@ -97,8 +102,8 @@ export default function StudentsPage() {
                 <div className="card">
                     <div className="empty-state">
                         <div className="empty-state-icon"><GraduationCap size={28} /></div>
-                        <h3 className="empty-state-title">Chưa có sinh viên nào</h3>
-                        <p className="empty-state-text">Thêm sinh viên hoặc thay đổi từ khóa tìm kiếm</p>
+                        <h3 className="empty-state-title">{searchQuery ? 'Không tìm thấy sinh viên' : 'Chưa có sinh viên nào'}</h3>
+                        <p className="empty-state-text">{searchQuery ? 'Thử từ khóa khác' : 'Thêm sinh viên mới'}</p>
                     </div>
                 </div>
             ) : (
@@ -120,12 +125,7 @@ export default function StudentsPage() {
                                     <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{
-                                                width: 36, height: 36, borderRadius: '50%',
-                                                background: 'var(--gradient-secondary)', display: 'flex',
-                                                alignItems: 'center', justifyContent: 'center',
-                                                color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
-                                            }}>
+                                            <div className="avatar-sm">
                                                 {user.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                             </div>
                                             <span style={{ fontWeight: 500 }}>{user.full_name}</span>
@@ -168,13 +168,13 @@ export default function StudentsPage() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Họ và tên</label>
-                                <input className="form-input" placeholder="Nguyễn Văn A" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
+                                <label className="form-label">Họ và tên <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                <input className="form-input" placeholder="Nguyễn Văn A" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} autoFocus />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Email</label>
+                                <label className="form-label">Email <span style={{ color: 'var(--danger)' }}>*</span></label>
                                 <input className="form-input" type="email" placeholder="email@example.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} disabled={!!editing} />
-                                {editing && <p className="form-helper">Email không thể thay đổi</p>}
+                                {editing && <p className="form-helper">Email không thể thay đổi sau khi tạo</p>}
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Mã sinh viên</label>

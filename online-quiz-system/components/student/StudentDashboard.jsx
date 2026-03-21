@@ -20,15 +20,7 @@ export default function StudentDashboard() {
         setActivePage('results');
     };
 
-    const renderPage = () => {
-        switch (activePage) {
-            case 'exams': return <StudentExams onStartExam={startExam} />;
-            case 'results': return <StudentResults />;
-            case 'take-exam': return <TakeExam examId={activeExamId} onFinish={finishExam} />;
-            default: return <StudentExams onStartExam={startExam} />;
-        }
-    };
-
+    // Full-screen exam mode - no sidebar
     if (activePage === 'take-exam' && activeExamId) {
         return <TakeExam examId={activeExamId} onFinish={finishExam} />;
     }
@@ -37,7 +29,11 @@ export default function StudentDashboard() {
         <div className="app-layout">
             <Sidebar activePage={activePage} setActivePage={setActivePage} role="student" />
             <main className="main-content">
-                {renderPage()}
+                {activePage === 'results' ? (
+                    <StudentResults />
+                ) : (
+                    <StudentExams onStartExam={startExam} />
+                )}
             </main>
         </div>
     );

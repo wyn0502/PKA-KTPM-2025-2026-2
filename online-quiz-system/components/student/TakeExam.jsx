@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { demoApi } from '@/lib/supabase';
 import {
     Clock, ChevronLeft, ChevronRight, Send, AlertTriangle,
-    CheckCircle2, XCircle, GraduationCap, ArrowLeft, Timer, Hash
+    CheckCircle2, XCircle, ArrowLeft, Timer, Hash, Flag
 } from 'lucide-react';
 
 function shuffleArray(arr) {
@@ -23,10 +23,12 @@ export default function TakeExam({ examId, onFinish }) {
     const [questions, setQuestions] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({});
+    const [flagged, setFlagged] = useState(new Set());
     const [timeLeft, setTimeLeft] = useState(0);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [result, setResult] = useState(null);
     const timerRef = useRef(null);
+    const submitCalledRef = useRef(false);
 
     // Load exam and shuffle
     useEffect(() => {
@@ -58,26 +60,47 @@ export default function TakeExam({ examId, onFinish }) {
         return () => clearInterval(timerRef.current);
     }, [isSubmitted]);
 
-    // Auto-submit when time runs out
-    useEffect(() => {
-        if (timeLeft === 0 && !isSubmitted && exam) {
-            handleSubmit();
-        }
-    }, [timeLeft]);
-
-    const handleSubmit = useCallback(() => {
-        if (isSubmitted) return;
+    const doSubmit = useCallback(() => {
+        if (submitCalledRef.current) return;
+        submitCalledRef.current = true;
         clearInterval(timerRef.current);
         const submitResult = demoApi.submitExam(examId, user.id, answers);
         if (submitResult.success) {
             setResult(submitResult.result);
             setIsSubmitted(true);
         }
-    }, [answers, examId, exam, isSubmitted, user]);
+    }, [answers, examId, user]);
+
+    // Auto-submit when time runs out
+    useEffect(() => {
+        if (timeLeft === 0 && !isSubmitted && exam) {
+            doSubmit();
+        }
+    }, [timeLeft, isSubmitted, exam, doSubmit]);
+
+    const handleSubmit = () => {
+        const unanswered = questions.length - Object.keys(answers).length;
+        let msg = 'Bạn có chắc muốn nộp bài?';
+        if (unanswered > 0) {
+            msg = `Bạn còn ${unanswered} câu chưa trả lời. Nộp bài ngay?`;
+        }
+        if (confirm(msg)) {
+            doSubmit();
+        }
+    };
 
     const selectAnswer = (questionId, answerId) => {
         if (isSubmitted) return;
         setAnswers(prev => ({ ...prev, [questionId]: answerId }));
+    };
+
+    const toggleFlag = (questionId) => {
+        setFlagged(prev => {
+            const next = new Set(prev);
+            if (next.has(questionId)) next.delete(questionId);
+            else next.add(questionId);
+            return next;
+        });
     };
 
     const formatTime = (seconds) => {
@@ -99,8 +122,7 @@ export default function TakeExam({ examId, onFinish }) {
 
     // Show result screen
     if (isSubmitted && result) {
-        const scorePercent = (result.correct_count / result.total_questions) * 10;
-        const passed = scorePercent >= 5;
+        const passed = result.score >= 5;
 
         return (
             <div className="exam-container" style={{ padding: '32px 16px' }}>
@@ -110,7 +132,7 @@ export default function TakeExam({ examId, onFinish }) {
                             {result.score}
                         </div>
                         <h2 style={{ fontSize: '1.4rem', marginBottom: 8 }}>
-                            {passed ? '🎉 Chúc mừng bạn đã đạt!' : '😔 Chưa đạt, cố gắng lần sau!'}
+                            {passed ? 'Chúc mừng bạn đã đạt!' : 'Chưa đạt, cố gắng lần sau!'}
                         </h2>
                         <p style={{ color: 'var(--text-muted)' }}>{exam.title}</p>
 
@@ -135,13 +157,13 @@ export default function TakeExam({ examId, onFinish }) {
                     </div>
                 </div>
 
-                {exam.show_result && (
+                {exam.show_result && result.answers_detail && (
                     <div style={{ marginTop: 24 }}>
                         <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <CheckCircle2 size={20} style={{ color: 'var(--primary-light)' }} />
                             Đáp án chi tiết
                         </h3>
-                        {result.answers_detail?.map((detail, index) => (
+                        {result.answers_detail.map((detail, index) => (
                             <div key={index} className="question-card">
                                 <div className="question-number">
                                     <Hash size={14} /> Câu {index + 1}
@@ -175,7 +197,7 @@ export default function TakeExam({ examId, onFinish }) {
 
                 <div style={{ textAlign: 'center', marginTop: 32 }}>
                     <button className="btn btn-primary btn-lg" onClick={onFinish}>
-                        <ArrowLeft size={18} /> Quay lại trang chủ
+                        <ArrowLeft size={18} /> Quay lại
                     </button>
                 </div>
             </div>
@@ -187,9 +209,9 @@ export default function TakeExam({ examId, onFinish }) {
 
     return (
         <div className="exam-container" style={{ padding: '16px' }}>
-            {/* Sticky header with timer */}
+            {/* Header with timer */}
             <div className="exam-header">
-                <div>
+                <div style={{ flex: 1 }}>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 4 }}>{exam.title}</h2>
                     <div className="exam-progress">
                         <span>{answeredCount}/{questions.length} đã trả lời</span>
@@ -208,10 +230,20 @@ export default function TakeExam({ examId, onFinish }) {
             {currentQuestion && (
                 <div className="question-card">
                     <div className="question-number">
-                        <Hash size={14} /> Câu {currentIndex + 1} / {questions.length}
-                        <span className={`badge badge-${currentQuestion.difficulty}`}>
-                            {{ easy: 'Dễ', medium: 'TB', hard: 'Khó' }[currentQuestion.difficulty]}
-                        </span>
+                        <span><Hash size={14} /> Câu {currentIndex + 1} / {questions.length}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span className={`badge badge-${currentQuestion.difficulty}`}>
+                                {{ easy: 'Dễ', medium: 'TB', hard: 'Khó' }[currentQuestion.difficulty]}
+                            </span>
+                            <button
+                                className={`btn btn-ghost btn-sm ${flagged.has(currentQuestion.id) ? 'flagged' : ''}`}
+                                onClick={() => toggleFlag(currentQuestion.id)}
+                                title={flagged.has(currentQuestion.id) ? 'Bỏ đánh dấu' : 'Đánh dấu xem lại'}
+                                style={{ color: flagged.has(currentQuestion.id) ? 'var(--warning)' : 'var(--text-muted)' }}
+                            >
+                                <Flag size={16} />
+                            </button>
+                        </div>
                     </div>
                     <p className="question-content">{currentQuestion.content}</p>
                     <div className="answer-options">
@@ -232,24 +264,16 @@ export default function TakeExam({ examId, onFinish }) {
             {/* Navigation */}
             <div className="exam-nav">
                 <button className="btn btn-secondary" onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0}>
-                    <ChevronLeft size={18} /> Câu trước
+                    <ChevronLeft size={18} /> Trước
                 </button>
 
                 {currentIndex === questions.length - 1 ? (
-                    <button className="btn btn-primary" onClick={() => {
-                        const unanswered = questions.length - answeredCount;
-                        if (unanswered > 0) {
-                            if (!confirm(`Bạn còn ${unanswered} câu chưa trả lời. Bạn có chắc muốn nộp bài?`)) return;
-                        } else {
-                            if (!confirm('Bạn có chắc muốn nộp bài?')) return;
-                        }
-                        handleSubmit();
-                    }}>
+                    <button className="btn btn-primary" onClick={handleSubmit}>
                         <Send size={18} /> Nộp bài
                     </button>
                 ) : (
                     <button className="btn btn-primary" onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}>
-                        Câu tiếp <ChevronRight size={18} />
+                        Tiếp <ChevronRight size={18} />
                     </button>
                 )}
             </div>
@@ -263,14 +287,16 @@ export default function TakeExam({ examId, onFinish }) {
                     {questions.map((q, index) => (
                         <button
                             key={q.id}
-                            className={`question-nav-btn ${answers[q.id] ? 'answered' : ''} ${currentIndex === index ? 'current' : ''}`}
+                            className={`question-nav-btn ${answers[q.id] ? 'answered' : ''} ${currentIndex === index ? 'current' : ''} ${flagged.has(q.id) ? 'flagged' : ''}`}
                             onClick={() => setCurrentIndex(index)}
+                            title={`Câu ${index + 1}${flagged.has(q.id) ? ' (đánh dấu)' : ''}${answers[q.id] ? ' (đã trả lời)' : ''}`}
                         >
                             {index + 1}
+                            {flagged.has(q.id) && <Flag size={8} className="flag-icon" />}
                         </button>
                     ))}
                 </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--primary)' }} /> Đang xem
                     </span>
@@ -280,6 +306,9 @@ export default function TakeExam({ examId, onFinish }) {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--bg-input)', border: '1px solid var(--border)' }} /> Chưa trả lời
                     </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Flag size={12} style={{ color: 'var(--warning)' }} /> Đánh dấu
+                    </span>
                 </div>
             </div>
 
@@ -288,8 +317,8 @@ export default function TakeExam({ examId, onFinish }) {
                     <AlertTriangle size={18} />
                     <span>
                         {timeLeft <= 60
-                            ? `⚠️ Chỉ còn ${timeLeft} giây! Bài thi sẽ tự động nộp khi hết giờ.`
-                            : `Còn ${Math.ceil(timeLeft / 60)} phút nữa. Hãy hoàn thành sớm!`}
+                            ? `Chỉ còn ${timeLeft} giây! Bài thi sẽ tự động nộp khi hết giờ.`
+                            : `Còn ${Math.ceil(timeLeft / 60)} phút. Hãy hoàn thành sớm!`}
                     </span>
                 </div>
             )}

@@ -1,15 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import {
     LayoutDashboard, BookOpen, FileQuestion, ClipboardList,
     Users, LogOut, Menu, X, GraduationCap, BarChart3,
-    FileText, History
+    FileText, History, Settings, RefreshCw
 } from 'lucide-react';
+import { demoApi } from '@/lib/supabase';
 
 export default function Sidebar({ activePage, setActivePage, role }) {
     const { user, logout } = useAuth();
-    const [mobileOpen, setMobileOpen] = [false, () => { }]; // Simplified for SSR
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const adminLinks = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,6 +35,18 @@ export default function Sidebar({ activePage, setActivePage, role }) {
         return name.split(' ').map(w => w[0]).join('').slice(-2).toUpperCase();
     };
 
+    const handleNavClick = (pageId) => {
+        setActivePage(pageId);
+        setMobileOpen(false);
+    };
+
+    const handleResetData = () => {
+        if (confirm('Reset toàn bộ dữ liệu demo về mặc định? Hành động này không thể hoàn tác.')) {
+            demoApi.resetData();
+            window.location.reload();
+        }
+    };
+
     return (
         <>
             <div className="mobile-header">
@@ -42,14 +56,16 @@ export default function Sidebar({ activePage, setActivePage, role }) {
                     </div>
                     <span style={{ fontWeight: 700, fontSize: '1rem' }}>QuizPro</span>
                 </div>
-                <button className="mobile-menu-btn" onClick={() => document.querySelector('.sidebar')?.classList.toggle('open')}>
-                    <Menu size={24} />
+                <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)}>
+                    {mobileOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
             </div>
 
-            <div className="sidebar-overlay" onClick={() => document.querySelector('.sidebar')?.classList.remove('open')} />
+            {mobileOpen && (
+                <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />
+            )}
 
-            <aside className="sidebar">
+            <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
                         <GraduationCap size={22} />
@@ -70,16 +86,22 @@ export default function Sidebar({ activePage, setActivePage, role }) {
                         <button
                             key={link.id}
                             className={`sidebar-link ${activePage === link.id ? 'active' : ''}`}
-                            onClick={() => {
-                                setActivePage(link.id);
-                                document.querySelector('.sidebar')?.classList.remove('open');
-                            }}
-                            style={{ position: 'relative' }}
+                            onClick={() => handleNavClick(link.id)}
                         >
                             <link.icon size={20} />
                             <span>{link.label}</span>
                         </button>
                     ))}
+
+                    {role === 'admin' && (
+                        <>
+                            <span className="sidebar-section-label" style={{ marginTop: 16 }}>Hệ thống</span>
+                            <button className="sidebar-link" onClick={handleResetData}>
+                                <RefreshCw size={20} />
+                                <span>Reset dữ liệu demo</span>
+                            </button>
+                        </>
+                    )}
                 </nav>
 
                 <div className="sidebar-footer">

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { demoApi } from '@/lib/supabase';
+import { useToast } from '@/lib/toast';
 import ImportWayground from './ImportWayground';
 import {
     FileQuestion, Plus, Pencil, Trash2, X, Search,
-    Filter, CircleDot, CheckCircle2, XCircle, Upload
+    CircleDot, CheckCircle2, Upload
 } from 'lucide-react';
 
 export default function QuestionsPage() {
@@ -17,8 +18,9 @@ export default function QuestionsPage() {
     const [filterDifficulty, setFilterDifficulty] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [showImport, setShowImport] = useState(false);
+    const toast = useToast();
 
-    const [form, setForm] = useState({
+    const emptyForm = {
         content: '', subject_id: '', difficulty: 'easy',
         answers: [
             { content: '', is_correct: true },
@@ -26,7 +28,9 @@ export default function QuestionsPage() {
             { content: '', is_correct: false },
             { content: '', is_correct: false },
         ]
-    });
+    };
+
+    const [form, setForm] = useState(emptyForm);
 
     useEffect(() => { loadData(); }, []);
 
@@ -43,14 +47,21 @@ export default function QuestionsPage() {
     });
 
     const handleSave = () => {
-        if (!form.content.trim() || !form.subject_id) return;
-        const hasCorrect = form.answers.some(a => a.is_correct && a.content.trim());
-        if (!hasCorrect) return;
+        if (!form.content.trim()) { toast.error('Vui lòng nhập nội dung câu hỏi'); return; }
+        if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
+
+        const filledAnswers = form.answers.filter(a => a.content.trim());
+        if (filledAnswers.length < 2) { toast.error('Cần ít nhất 2 đáp án'); return; }
+
+        const hasCorrect = filledAnswers.some(a => a.is_correct);
+        if (!hasCorrect) { toast.error('Phải có ít nhất 1 đáp án đúng'); return; }
 
         if (editing) {
-            demoApi.updateQuestion(editing.id, form);
+            demoApi.updateQuestion(editing.id, { ...form, answers: filledAnswers });
+            toast.success('Cập nhật câu hỏi thành công');
         } else {
-            demoApi.addQuestion(form);
+            demoApi.addQuestion({ ...form, answers: filledAnswers });
+            toast.success('Thêm câu hỏi thành công');
         }
         closeModal();
         loadData();
@@ -59,15 +70,7 @@ export default function QuestionsPage() {
     const closeModal = () => {
         setShowModal(false);
         setEditing(null);
-        setForm({
-            content: '', subject_id: subjects[0]?.id || '', difficulty: 'easy',
-            answers: [
-                { content: '', is_correct: true },
-                { content: '', is_correct: false },
-                { content: '', is_correct: false },
-                { content: '', is_correct: false },
-            ]
-        });
+        setForm({ ...emptyForm, subject_id: subjects[0]?.id || '', answers: emptyForm.answers.map(a => ({ ...a })) });
     };
 
     const handleEdit = (question) => {
@@ -78,14 +81,15 @@ export default function QuestionsPage() {
             difficulty: question.difficulty,
             answers: question.answers.length > 0
                 ? question.answers.map(a => ({ content: a.content, is_correct: a.is_correct }))
-                : [{ content: '', is_correct: true }, { content: '', is_correct: false }, { content: '', is_correct: false }, { content: '', is_correct: false }]
+                : emptyForm.answers.map(a => ({ ...a }))
         });
         setShowModal(true);
     };
 
     const handleDelete = (id) => {
-        if (confirm('Bạn có chắc muốn xóa câu hỏi này?')) {
+        if (confirm('Xóa câu hỏi này? Câu hỏi sẽ bị xóa khỏi các đề thi liên quan.')) {
             demoApi.deleteQuestion(id);
+            toast.success('Đã xóa câu hỏi');
             loadData();
         }
     };
@@ -97,10 +101,7 @@ export default function QuestionsPage() {
         });
     };
 
-    const difficultyLabel = (d) => {
-        const map = { easy: 'Dễ', medium: 'Trung bình', hard: 'Khó' };
-        return map[d] || d;
-    };
+    const difficultyLabel = (d) => ({ easy: 'Dễ', medium: 'Trung bình', hard: 'Khó' }[d] || d);
 
     return (
         <div>
@@ -111,9 +112,9 @@ export default function QuestionsPage() {
                 </div>
                 <div className="btn-group">
                     <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
-                        <Upload size={18} /> Import Wayground
+                        <Upload size={18} /> Import
                     </button>
-                    <button className="btn btn-primary" onClick={() => { setForm({ ...form, subject_id: subjects[0]?.id || '' }); setShowModal(true); }}>
+                    <button className="btn btn-primary" onClick={() => { setForm({ ...emptyForm, subject_id: subjects[0]?.id || '', answers: emptyForm.answers.map(a => ({ ...a })) }); setShowModal(true); }}>
                         <Plus size={18} /> Thêm câu hỏi
                     </button>
                 </div>
@@ -190,7 +191,7 @@ export default function QuestionsPage() {
                         <div className="modal-body">
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Môn học</label>
+                                    <label className="form-label">Môn học <span style={{ color: 'var(--danger)' }}>*</span></label>
                                     <select className="form-select" value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })}>
                                         <option value="">Chọn môn học...</option>
                                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -207,8 +208,8 @@ export default function QuestionsPage() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Nội dung câu hỏi</label>
-                                <textarea className="form-textarea" placeholder="Nhập câu hỏi..." value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
+                                <label className="form-label">Nội dung câu hỏi <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                <textarea className="form-textarea" placeholder="Nhập câu hỏi..." value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={3} />
                             </div>
 
                             <div className="form-group">
@@ -244,7 +245,7 @@ export default function QuestionsPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <p className="form-helper">Click vào đáp án để chọn đáp án đúng (icon xanh ✓)</p>
+                                <p className="form-helper">Click vào đáp án để chọn đáp án đúng</p>
                             </div>
                         </div>
                         <div className="modal-footer">
@@ -260,7 +261,7 @@ export default function QuestionsPage() {
             {showImport && (
                 <ImportWayground
                     subjects={subjects}
-                    onImported={() => { setShowImport(false); loadData(); }}
+                    onImported={() => { setShowImport(false); loadData(); toast.success('Import câu hỏi thành công'); }}
                     onClose={() => setShowImport(false)}
                 />
             )}

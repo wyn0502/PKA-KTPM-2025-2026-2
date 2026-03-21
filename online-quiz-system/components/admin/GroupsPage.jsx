@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { demoApi } from '@/lib/supabase';
-import { Users, Plus, Pencil, Trash2, X, UserPlus, UserMinus } from 'lucide-react';
+import { useToast } from '@/lib/toast';
+import { Users, Plus, Pencil, Trash2, X } from 'lucide-react';
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState([]);
@@ -10,6 +11,7 @@ export default function GroupsPage() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({ name: '', description: '', member_ids: [] });
+    const toast = useToast();
 
     useEffect(() => { loadData(); }, []);
 
@@ -19,11 +21,13 @@ export default function GroupsPage() {
     };
 
     const handleSave = () => {
-        if (!form.name.trim()) return;
+        if (!form.name.trim()) { toast.error('Vui lòng nhập tên nhóm'); return; }
         if (editing) {
             demoApi.updateGroup(editing.id, form);
+            toast.success('Cập nhật nhóm thành công');
         } else {
             demoApi.addGroup(form);
+            toast.success('Tạo nhóm thành công');
         }
         closeModal();
         loadData();
@@ -45,8 +49,12 @@ export default function GroupsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Xóa nhóm thi này?')) { demoApi.deleteGroup(id); loadData(); }
+    const handleDelete = (group) => {
+        if (confirm(`Xóa nhóm "${group.name}"?`)) {
+            demoApi.deleteGroup(group.id);
+            toast.success('Đã xóa nhóm');
+            loadData();
+        }
     };
 
     const toggleMember = (userId) => {
@@ -88,11 +96,13 @@ export default function GroupsPage() {
                                         <Users size={18} style={{ color: 'var(--primary-light)' }} />
                                         {group.name}
                                     </h3>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 4 }}>{group.description}</p>
+                                    {group.description && (
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 4 }}>{group.description}</p>
+                                    )}
                                 </div>
                                 <div className="btn-group">
                                     <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(group)}><Pencil size={16} /></button>
-                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(group.id)} style={{ color: 'var(--danger)' }}><Trash2 size={16} /></button>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(group)} style={{ color: 'var(--danger)' }}><Trash2 size={16} /></button>
                                 </div>
                             </div>
 
@@ -107,12 +117,7 @@ export default function GroupsPage() {
                                                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                                                 background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem'
                                             }}>
-                                                <div style={{
-                                                    width: 28, height: 28, borderRadius: '50%',
-                                                    background: 'var(--gradient-secondary)', display: 'flex',
-                                                    alignItems: 'center', justifyContent: 'center',
-                                                    color: 'white', fontSize: '0.7rem', fontWeight: 700, flexShrink: 0
-                                                }}>
+                                                <div className="avatar-xs">
                                                     {member.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                                 </div>
                                                 <div style={{ flex: 1 }}>
@@ -140,8 +145,8 @@ export default function GroupsPage() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Tên nhóm</label>
-                                <input className="form-input" placeholder="VD: CNTT K20 - Nhóm 1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                                <label className="form-label">Tên nhóm <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                <input className="form-input" placeholder="VD: CNTT K20 - Nhóm 1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoFocus />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Mô tả</label>
@@ -151,7 +156,7 @@ export default function GroupsPage() {
                                 <label className="form-label">Thành viên ({form.member_ids.length} đã chọn)</label>
                                 <div style={{ maxHeight: 250, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 8 }}>
                                     {students.length === 0 ? (
-                                        <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>Chưa có sinh viên nào</p>
+                                        <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>Chưa có sinh viên. Thêm sinh viên trước.</p>
                                     ) : students.map(s => (
                                         <label key={s.id} className="form-checkbox" style={{ padding: '8px 12px' }}>
                                             <input type="checkbox" checked={form.member_ids.includes(s.id)} onChange={() => toggleMember(s.id)} />

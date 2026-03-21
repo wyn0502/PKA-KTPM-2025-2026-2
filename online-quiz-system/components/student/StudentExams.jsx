@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { demoApi } from '@/lib/supabase';
 import {
     FileText, Clock, CheckSquare, Play, CheckCircle2,
-    AlertCircle, Shuffle, CalendarClock
+    Shuffle, BookOpen
 } from 'lucide-react';
 
 export default function StudentExams({ onStartExam }) {
@@ -16,12 +16,18 @@ export default function StudentExams({ onStartExam }) {
         if (user) setExams(demoApi.getExamsForStudent(user.id));
     }, [user]);
 
+    const activeExams = exams.filter(e => !e.hasSubmitted);
+    const completedExams = exams.filter(e => e.hasSubmitted);
+
     return (
         <div>
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Bài thi của tôi</h1>
-                    <p className="page-subtitle">Danh sách các bài thi được gán cho bạn</p>
+                    <p className="page-subtitle">
+                        {activeExams.length} bài thi chờ làm
+                        {completedExams.length > 0 && ` | ${completedExams.length} đã hoàn thành`}
+                    </p>
                 </div>
             </div>
 
@@ -34,53 +40,87 @@ export default function StudentExams({ onStartExam }) {
                     </div>
                 </div>
             ) : (
-                <div className="grid-2">
-                    {exams.map(exam => (
-                        <div key={exam.id} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                                    {exam.subject && <span className="badge badge-info">{exam.subject.name}</span>}
-                                    {exam.hasSubmitted && <span className="badge badge-success"><CheckCircle2 size={12} /> Đã nộp</span>}
-                                </div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 12, color: 'var(--text-heading)' }}>
-                                    {exam.title}
-                                </h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Clock size={16} style={{ color: 'var(--warning)' }} />
-                                        <span>Thời gian: <strong>{exam.duration_minutes} phút</strong></span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <CheckSquare size={16} style={{ color: 'var(--primary-light)' }} />
-                                        <span>Số câu hỏi: <strong>{exam.total_questions}</strong></span>
-                                    </div>
-                                    {exam.shuffle_questions && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <Shuffle size={16} style={{ color: 'var(--secondary)' }} />
-                                            <span>Trộn đề thi</span>
-                                        </div>
-                                    )}
-                                </div>
+                <>
+                    {activeExams.length > 0 && (
+                        <>
+                            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                                Chờ làm bài ({activeExams.length})
+                            </h3>
+                            <div className="grid-2" style={{ marginBottom: 24 }}>
+                                {activeExams.map(exam => (
+                                    <ExamCard key={exam.id} exam={exam} onStart={onStartExam} />
+                                ))}
                             </div>
-                            <div style={{ marginTop: 20 }}>
-                                {exam.hasSubmitted ? (
-                                    <button className="btn btn-secondary" style={{ width: '100%' }} disabled>
-                                        <CheckCircle2 size={18} /> Đã hoàn thành
-                                    </button>
-                                ) : (
-                                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                                        if (confirm(`Bắt đầu bài thi "${exam.title}"? Bạn có ${exam.duration_minutes} phút để hoàn thành.`)) {
-                                            onStartExam(exam.id);
-                                        }
-                                    }}>
-                                        <Play size={18} /> Bắt đầu thi
-                                    </button>
-                                )}
+                        </>
+                    )}
+
+                    {completedExams.length > 0 && (
+                        <>
+                            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                                Đã hoàn thành ({completedExams.length})
+                            </h3>
+                            <div className="grid-2">
+                                {completedExams.map(exam => (
+                                    <ExamCard key={exam.id} exam={exam} completed />
+                                ))}
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        </>
+                    )}
+                </>
             )}
+        </div>
+    );
+}
+
+function ExamCard({ exam, onStart, completed }) {
+    return (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', opacity: completed ? 0.75 : 1 }}>
+            <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                    {exam.subject && (
+                        <span className="badge badge-info">
+                            <BookOpen size={12} /> {exam.subject.name}
+                        </span>
+                    )}
+                    {completed && (
+                        <span className="badge badge-success"><CheckCircle2 size={12} /> Đã nộp</span>
+                    )}
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 12, color: 'var(--text-heading)' }}>
+                    {exam.title}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Clock size={16} style={{ color: 'var(--warning)' }} />
+                        <span>Thời gian: <strong>{exam.duration_minutes} phút</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <CheckSquare size={16} style={{ color: 'var(--primary-light)' }} />
+                        <span>Số câu hỏi: <strong>{exam.total_questions}</strong></span>
+                    </div>
+                    {exam.shuffle_questions && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Shuffle size={16} style={{ color: 'var(--secondary)' }} />
+                            <span>Trộn đề thi</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div style={{ marginTop: 20 }}>
+                {completed ? (
+                    <button className="btn btn-secondary" style={{ width: '100%' }} disabled>
+                        <CheckCircle2 size={18} /> Đã hoàn thành
+                    </button>
+                ) : (
+                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
+                        if (confirm(`Bắt đầu bài thi "${exam.title}"?\nThời gian: ${exam.duration_minutes} phút\nSố câu: ${exam.total_questions}\n\nBài thi sẽ tự động nộp khi hết giờ.`)) {
+                            onStart(exam.id);
+                        }
+                    }}>
+                        <Play size={18} /> Bắt đầu thi
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

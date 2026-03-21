@@ -12,6 +12,7 @@ export default function AppRouter() {
         return (
             <div className="loading-container" style={{ minHeight: '100vh' }}>
                 <div className="spinner" />
+                <p style={{ color: 'var(--text-muted)', marginTop: 16, fontSize: '0.9rem' }}>Đang tải...</p>
             </div>
         );
     }

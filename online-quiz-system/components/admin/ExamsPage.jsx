@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { demoApi } from '@/lib/supabase';
+import { useToast } from '@/lib/toast';
 import {
     ClipboardList, Plus, Pencil, Trash2, X, Play, Pause,
-    Clock, Shuffle, Eye, Users, CheckSquare
+    Clock, Shuffle, Eye, Users, CheckSquare, AlertCircle
 } from 'lucide-react';
 
 export default function ExamsPage() {
@@ -14,12 +15,14 @@ export default function ExamsPage() {
     const [groups, setGroups] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState({
+    const toast = useToast();
+
+    const emptyForm = {
         title: '', subject_id: '', duration_minutes: 30,
         shuffle_questions: true, shuffle_answers: true, show_result: true,
         status: 'draft', question_ids: [], group_ids: [],
-        start_time: '', end_time: '',
-    });
+    };
+    const [form, setForm] = useState(emptyForm);
 
     useEffect(() => { loadData(); }, []);
 
@@ -31,11 +34,16 @@ export default function ExamsPage() {
     };
 
     const handleSave = () => {
-        if (!form.title.trim() || !form.subject_id) return;
+        if (!form.title.trim()) { toast.error('Vui lòng nhập tên đề thi'); return; }
+        if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
+        if (form.question_ids.length === 0) { toast.warning('Chưa chọn câu hỏi nào cho đề thi'); }
+
         if (editing) {
             demoApi.updateExam(editing.id, form);
+            toast.success('Cập nhật đề thi thành công');
         } else {
             demoApi.addExam(form);
+            toast.success('Tạo đề thi thành công');
         }
         closeModal();
         loadData();
@@ -44,12 +52,7 @@ export default function ExamsPage() {
     const closeModal = () => {
         setShowModal(false);
         setEditing(null);
-        setForm({
-            title: '', subject_id: '', duration_minutes: 30,
-            shuffle_questions: true, shuffle_answers: true, show_result: true,
-            status: 'draft', question_ids: [], group_ids: [],
-            start_time: '', end_time: '',
-        });
+        setForm(emptyForm);
     };
 
     const handleEdit = (exam) => {
@@ -60,7 +63,6 @@ export default function ExamsPage() {
             show_result: exam.show_result, status: exam.status,
             question_ids: exam.questions?.map(q => q.id) || [],
             group_ids: exam.groups?.map(g => g.id) || [],
-            start_time: exam.start_time || '', end_time: exam.end_time || '',
         });
         setShowModal(true);
     };
@@ -68,11 +70,19 @@ export default function ExamsPage() {
     const toggleStatus = (exam) => {
         const newStatus = exam.status === 'active' ? 'closed' : 'active';
         demoApi.updateExamStatus(exam.id, newStatus);
+        toast.info(newStatus === 'active' ? 'Đã mở đề thi' : 'Đã đóng đề thi');
         loadData();
     };
 
-    const handleDelete = (id) => {
-        if (confirm('Bạn có chắc muốn xóa đề thi này?')) { demoApi.deleteExam(id); loadData(); }
+    const handleDelete = (exam) => {
+        if (exam.result_count > 0) {
+            if (!confirm(`Đề thi "${exam.title}" đã có ${exam.result_count} lượt thi. Xóa sẽ mất toàn bộ kết quả. Tiếp tục?`)) return;
+        } else {
+            if (!confirm(`Xóa đề thi "${exam.title}"?`)) return;
+        }
+        demoApi.deleteExam(exam.id);
+        toast.success('Đã xóa đề thi');
+        loadData();
     };
 
     const toggleQuestionSelection = (qId) => {
@@ -128,22 +138,30 @@ export default function ExamsPage() {
                     {exams.map(exam => (
                         <div key={exam.id} className="card" style={{ padding: 20 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 200 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                                         <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{exam.title}</h3>
                                         <span className={`badge ${statusInfo[exam.status]?.badge}`}>
                                             {statusInfo[exam.status]?.label}
                                         </span>
+                                        {exam.result_count > 0 && (
+                                            <span className="badge badge-info">{exam.result_count} lượt thi</span>
+                                        )}
                                     </div>
-                                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        {exam.subject && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <AlertCircle size={14} /> {exam.subject.name}
+                                            </span>
+                                        )}
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <Clock size={14} /> {exam.duration_minutes} phút
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <CheckSquare size={14} /> {exam.questions?.length || 0} câu hỏi
+                                            <CheckSquare size={14} /> {exam.questions?.length || 0} câu
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Users size={14} /> {exam.groups?.map(g => g.name).join(', ') || 'Chưa gán nhóm'}
+                                            <Users size={14} /> {exam.groups?.length > 0 ? exam.groups.map(g => g.name).join(', ') : 'Chưa gán nhóm'}
                                         </span>
                                         {exam.shuffle_questions && (
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -152,7 +170,7 @@ export default function ExamsPage() {
                                         )}
                                         {exam.show_result && (
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Eye size={14} /> Hiển thị kết quả
+                                                <Eye size={14} /> Hiện KQ
                                             </span>
                                         )}
                                     </div>
@@ -164,7 +182,7 @@ export default function ExamsPage() {
                                     <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(exam)}>
                                         <Pencil size={14} />
                                     </button>
-                                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(exam.id)}>
+                                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(exam)}>
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
@@ -183,13 +201,13 @@ export default function ExamsPage() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Tên đề thi</label>
-                                <input className="form-input" placeholder="VD: Kiểm tra giữa kỳ" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                                <label className="form-label">Tên đề thi <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                <input className="form-input" placeholder="VD: Kiểm tra giữa kỳ" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
                             </div>
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Môn học</label>
+                                    <label className="form-label">Môn học <span style={{ color: 'var(--danger)' }}>*</span></label>
                                     <select className="form-select" value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value, question_ids: [] })}>
                                         <option value="">Chọn môn học...</option>
                                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -197,7 +215,7 @@ export default function ExamsPage() {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Thời gian (phút)</label>
-                                    <input type="number" className="form-input" min="1" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 30 })} />
+                                    <input type="number" className="form-input" min="1" max="300" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 30 })} />
                                 </div>
                             </div>
 
@@ -227,10 +245,7 @@ export default function ExamsPage() {
                                             onClick={() => {
                                                 const allIds = filteredQuestions.map(q => q.id);
                                                 const allSelected = allIds.every(id => form.question_ids.includes(id));
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    question_ids: allSelected ? [] : allIds,
-                                                }));
+                                                setForm(prev => ({ ...prev, question_ids: allSelected ? [] : allIds }));
                                             }}
                                         >
                                             <CheckSquare size={14} />
@@ -259,7 +274,7 @@ export default function ExamsPage() {
                                 <label className="form-label">Gán nhóm thi ({form.group_ids.length} đã chọn)</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {groups.length === 0 ? (
-                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chưa có nhóm thi nào</p>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chưa có nhóm thi nào. Tạo nhóm thi trước.</p>
                                     ) : groups.map(g => (
                                         <label key={g.id} className="form-checkbox">
                                             <input type="checkbox" checked={form.group_ids.includes(g.id)} onChange={() => toggleGroupSelection(g.id)} />
