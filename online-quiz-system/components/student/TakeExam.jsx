@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth';
 import { demoApi } from '@/lib/supabase';
 import {
     Clock, ChevronLeft, ChevronRight, Send, AlertTriangle,
-    CheckCircle2, XCircle, ArrowLeft, Timer, Hash, Flag
+    CheckCircle2, XCircle, ArrowLeft, Timer, Hash, Flag,
+    ShieldAlert, Eye as EyeIcon, Copy, Maximize
 } from 'lucide-react';
 
 function shuffleArray(arr) {
@@ -27,8 +28,11 @@ export default function TakeExam({ examId, onFinish }) {
     const [timeLeft, setTimeLeft] = useState(0);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [result, setResult] = useState(null);
+    const [cheatingWarnings, setCheatingWarnings] = useState(0);
+    const [cheatingAlert, setCheatingAlert] = useState(null);
     const timerRef = useRef(null);
     const submitCalledRef = useRef(false);
+    const cheatingCountRef = useRef(0);
 
     // Load exam and shuffle
     useEffect(() => {
@@ -43,7 +47,117 @@ export default function TakeExam({ examId, onFinish }) {
             qs = qs.map(q => ({ ...q, answers: shuffleArray(q.answers) }));
         }
         setQuestions(qs);
-    }, [examId]);
+        // Register active session for monitoring
+        demoApi.startExamSession(examId, user.id);
+    }, [examId, user]);
+
+    // Log cheating event helper
+    const logCheat = useCallback((type, detail) => {
+        if (!user || isSubmitted) return;
+        demoApi.addCheatingLog(examId, user.id, type, detail);
+        cheatingCountRef.current += 1;
+        setCheatingWarnings(cheatingCountRef.current);
+        setCheatingAlert(detail);
+        setTimeout(() => setCheatingAlert(null), 4000);
+    }, [examId, user, isSubmitted]);
+
+    // Cheating detection: tab visibility
+    useEffect(() => {
+        if (isSubmitted || !exam) return;
+        const handleVisibility = () => {
+            if (document.hidden) {
+                logCheat('tab_switch', 'Chuyển tab/cửa sổ khác');
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [isSubmitted, exam, logCheat]);
+
+    // Cheating detection: copy, paste, cut, right-click
+    useEffect(() => {
+        if (isSubmitted || !exam) return;
+        const handleCopy = (e) => { e.preventDefault(); logCheat('copy', 'Cố gắng sao chép nội dung'); };
+        const handlePaste = (e) => { e.preventDefault(); logCheat('paste', 'Cố gắng dán nội dung'); };
+        const handleCut = (e) => { e.preventDefault(); logCheat('copy', 'Cố gắng cắt nội dung'); };
+        const handleContextMenu = (e) => { e.preventDefault(); logCheat('right_click', 'Nhấn chuột phải'); };
+
+        document.addEventListener('copy', handleCopy);
+        document.addEventListener('paste', handlePaste);
+        document.addEventListener('cut', handleCut);
+        document.addEventListener('contextmenu', handleContextMenu);
+        return () => {
+            document.removeEventListener('copy', handleCopy);
+            document.removeEventListener('paste', handlePaste);
+            document.removeEventListener('cut', handleCut);
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    }, [isSubmitted, exam, logCheat]);
+
+    // Cheating detection: fullscreen exit
+    useEffect(() => {
+        if (isSubmitted || !exam) return;
+
+        // Try to enter fullscreen on exam start
+        const enterFullscreen = async () => {
+            try {
+                if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                }
+            } catch {
+                // Browser may block fullscreen without user gesture - that's ok
+            }
+        };
+        enterFullscreen();
+
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && !submitCalledRef.current) {
+                logCheat('fullscreen_exit', 'Thoát chế độ toàn màn hình');
+            }
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            // Exit fullscreen when component unmounts
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        };
+    }, [isSubmitted, exam, logCheat]);
+
+    // Cheating detection: window blur (alt-tab, etc)
+    useEffect(() => {
+        if (isSubmitted || !exam) return;
+        const handleBlur = () => {
+            if (!document.hidden) {
+                logCheat('tab_switch', 'Mất focus cửa sổ (Alt+Tab)');
+            }
+        };
+        window.addEventListener('blur', handleBlur);
+        return () => window.removeEventListener('blur', handleBlur);
+    }, [isSubmitted, exam, logCheat]);
+
+    // Cheating detection: keyboard shortcuts (Ctrl+C, Ctrl+V, Ctrl+Shift+I, F12)
+    useEffect(() => {
+        if (isSubmitted || !exam) return;
+        const handleKeyDown = (e) => {
+            // Block Ctrl+C, Ctrl+V, Ctrl+X
+            if (e.ctrlKey && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                e.preventDefault();
+            }
+            // Detect devtools shortcuts
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase()))) {
+                e.preventDefault();
+                logCheat('devtools', 'Cố gắng mở DevTools');
+            }
+            // Detect Ctrl+U (view source)
+            if (e.ctrlKey && e.key.toLowerCase() === 'u') {
+                e.preventDefault();
+                logCheat('devtools', 'Cố gắng xem mã nguồn');
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isSubmitted, exam, logCheat]);
 
     // Countdown timer
     useEffect(() => {
@@ -64,8 +178,13 @@ export default function TakeExam({ examId, onFinish }) {
         if (submitCalledRef.current) return;
         submitCalledRef.current = true;
         clearInterval(timerRef.current);
+        // Exit fullscreen before showing result
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
         const submitResult = demoApi.submitExam(examId, user.id, answers);
         if (submitResult.success) {
+            demoApi.endExamSession(examId, user.id);
             setResult(submitResult.result);
             setIsSubmitted(true);
         }
@@ -91,7 +210,11 @@ export default function TakeExam({ examId, onFinish }) {
 
     const selectAnswer = (questionId, answerId) => {
         if (isSubmitted) return;
-        setAnswers(prev => ({ ...prev, [questionId]: answerId }));
+        setAnswers(prev => {
+            const next = { ...prev, [questionId]: answerId };
+            demoApi.updateExamSession(examId, user.id, Object.keys(next).length, questions.length);
+            return next;
+        });
     };
 
     const toggleFlag = (questionId) => {
@@ -154,6 +277,13 @@ export default function TakeExam({ examId, onFinish }) {
                                 <div className="result-detail-label">Điểm / 10</div>
                             </div>
                         </div>
+
+                        {cheatingWarnings > 0 && (
+                            <div className="cheating-result-warning" style={{ marginTop: 16 }}>
+                                <ShieldAlert size={18} />
+                                <span>{cheatingWarnings} cảnh báo gian lận được ghi nhận</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -209,6 +339,14 @@ export default function TakeExam({ examId, onFinish }) {
 
     return (
         <div className="exam-container" style={{ padding: '16px' }}>
+            {/* Cheating alert toast */}
+            {cheatingAlert && (
+                <div className="cheating-alert">
+                    <ShieldAlert size={18} />
+                    <span>{cheatingAlert} - Hành vi đã được ghi nhận!</span>
+                </div>
+            )}
+
             {/* Header with timer */}
             <div className="exam-header">
                 <div style={{ flex: 1 }}>
@@ -220,9 +358,17 @@ export default function TakeExam({ examId, onFinish }) {
                         </div>
                     </div>
                 </div>
-                <div className={getTimerClass()}>
-                    <Timer size={22} />
-                    {formatTime(timeLeft)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {cheatingWarnings > 0 && (
+                        <div className="cheating-counter" title={`${cheatingWarnings} cảnh báo gian lận`}>
+                            <ShieldAlert size={16} />
+                            <span>{cheatingWarnings}</span>
+                        </div>
+                    )}
+                    <div className={getTimerClass()}>
+                        <Timer size={22} />
+                        {formatTime(timeLeft)}
+                    </div>
                 </div>
             </div>
 

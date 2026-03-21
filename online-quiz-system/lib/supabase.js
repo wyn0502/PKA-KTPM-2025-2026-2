@@ -25,12 +25,14 @@ function simpleHash(str) {
 // Default demo data
 const defaultDemoData = {
     users: [
-        { id: '1', email: 'admin@quiz.com', full_name: 'Nguyễn Văn Admin', role: 'admin', student_id: null, password_hash: simpleHash('admin123'), created_at: new Date().toISOString() },
-        { id: '2', email: 'student@quiz.com', full_name: 'Trần Thị Sinh Viên', role: 'student', student_id: 'SV001', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
-        { id: '3', email: 'sv002@quiz.com', full_name: 'Lê Văn Học', role: 'student', student_id: 'SV002', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
-        { id: '4', email: 'sv003@quiz.com', full_name: 'Phạm Thị Mai', role: 'student', student_id: 'SV003', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
-        { id: '5', email: 'sv004@quiz.com', full_name: 'Hoàng Văn Nam', role: 'student', student_id: 'SV004', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
+        { id: '1', email: 'admin@quiz.com', full_name: 'Nguyễn Văn Admin', role: 'admin', student_id: null, department: null, class_name: null, academic_year: null, password_hash: simpleHash('admin123'), created_at: new Date().toISOString() },
+        { id: '2', email: 'student@quiz.com', full_name: 'Trần Thị Sinh Viên', role: 'student', student_id: 'SV001', department: 'Công nghệ thông tin', class_name: 'CNTT01', academic_year: 'K20', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
+        { id: '3', email: 'sv002@quiz.com', full_name: 'Lê Văn Học', role: 'student', student_id: 'SV002', department: 'Công nghệ thông tin', class_name: 'CNTT01', academic_year: 'K20', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
+        { id: '4', email: 'sv003@quiz.com', full_name: 'Phạm Thị Mai', role: 'student', student_id: 'SV003', department: 'Công nghệ thông tin', class_name: 'CNTT02', academic_year: 'K20', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
+        { id: '5', email: 'sv004@quiz.com', full_name: 'Hoàng Văn Nam', role: 'student', student_id: 'SV004', department: 'Hệ thống thông tin', class_name: 'HTTT01', academic_year: 'K21', password_hash: simpleHash('student123'), created_at: new Date().toISOString() },
     ],
+    cheating_logs: [],
+    active_sessions: [],
     subjects: [
         { id: '1', name: 'Kỹ thuật phần mềm', description: 'Software Engineering - Các mô hình SDLC, Agile, Design Pattern' },
         { id: '2', name: 'Cơ sở dữ liệu', description: 'Database Fundamentals - SQL, Normalization, ER Diagram' },
@@ -287,6 +289,9 @@ export const demoApi = {
             email,
             full_name: userData.full_name.trim(),
             student_id: userData.student_id?.trim() || null,
+            department: userData.department?.trim() || null,
+            class_name: userData.class_name?.trim() || null,
+            academic_year: userData.academic_year?.trim() || null,
             role: 'student',
             password_hash: simpleHash(userData.password || 'student123'),
             created_at: new Date().toISOString(),
@@ -323,6 +328,9 @@ export const demoApi = {
             email,
             full_name: data.full_name.trim(),
             student_id: data.student_id?.trim() || null,
+            department: data.department?.trim() || null,
+            class_name: data.class_name?.trim() || null,
+            academic_year: data.academic_year?.trim() || null,
             role: data.role || 'student',
             password_hash: simpleHash(data.password || 'student123'),
             created_at: new Date().toISOString(),
@@ -333,6 +341,66 @@ export const demoApi = {
         return { success: true, user: safeUser };
     },
 
+    // Bulk import students from array
+    bulkImportUsers(usersArray) {
+        let imported = 0;
+        let skipped = 0;
+        const errors = [];
+
+        usersArray.forEach((row, index) => {
+            const email = (row.email || row.Email || '').toLowerCase().trim();
+            const fullName = (row.full_name || row['Họ tên'] || row['Ho ten'] || row.name || row.Name || '').trim();
+            const studentId = (row.student_id || row['Mã SV'] || row['Ma SV'] || row.msv || '').trim();
+            const department = (row.department || row['Khoa'] || row['Phòng/Khoa'] || '').trim();
+            const className = (row.class_name || row['Lớp'] || row['Lop'] || '').trim();
+            const academicYear = (row.academic_year || row['Khóa'] || row['Khoa hoc'] || row['Niên khóa'] || '').trim();
+
+            if (!email || !fullName) {
+                errors.push(`Dòng ${index + 2}: Thiếu email hoặc họ tên`);
+                skipped++;
+                return;
+            }
+            if (!isValidEmail(email)) {
+                errors.push(`Dòng ${index + 2}: Email "${email}" không hợp lệ`);
+                skipped++;
+                return;
+            }
+            if (demoData.users.find(u => u.email === email)) {
+                errors.push(`Dòng ${index + 2}: Email "${email}" đã tồn tại`);
+                skipped++;
+                return;
+            }
+
+            demoData.users.push({
+                id: generateId(),
+                email,
+                full_name: fullName,
+                student_id: studentId || null,
+                department: department || null,
+                class_name: className || null,
+                academic_year: academicYear || null,
+                role: 'student',
+                password_hash: simpleHash('student123'),
+                created_at: new Date().toISOString(),
+            });
+            imported++;
+        });
+
+        persist();
+        return { imported, skipped, errors, total: usersArray.length };
+    },
+
+    // Get unique values for filters
+    getDepartments() {
+        return [...new Set(demoData.users.filter(u => u.department).map(u => u.department))].sort();
+    },
+    getClassNames() {
+        return [...new Set(demoData.users.filter(u => u.class_name).map(u => u.class_name))].sort();
+    },
+    getAcademicYears() {
+        return [...new Set(demoData.users.filter(u => u.academic_year).map(u => u.academic_year))].sort();
+    },
+
     updateUser(id, data) {
         const idx = demoData.users.findIndex(u => u.id === id);
         if (idx < 0) return null;
@@ -340,6 +408,9 @@ export const demoApi = {
             ...demoData.users[idx],
             full_name: data.full_name?.trim() || demoData.users[idx].full_name,
             student_id: data.student_id?.trim() ?? demoData.users[idx].student_id,
+            department: data.department?.trim() ?? demoData.users[idx].department,
+            class_name: data.class_name?.trim() ?? demoData.users[idx].class_name,
+            academic_year: data.academic_year?.trim() ?? demoData.users[idx].academic_year,
             role: data.role || demoData.users[idx].role,
         };
         if (data.password) {
@@ -714,6 +785,124 @@ export const demoApi = {
         };
     },
 
+    // Active exam sessions (for real-time monitoring)
+    startExamSession(examId, userId) {
+        // Remove any existing session for this user+exam
+        demoData.active_sessions = (demoData.active_sessions || []).filter(
+            s => !(s.exam_id === examId && s.user_id === userId)
+        );
+        const session = {
+            id: generateId(),
+            exam_id: examId,
+            user_id: userId,
+            started_at: new Date().toISOString(),
+            answered_count: 0,
+            total_questions: 0,
+            last_activity: new Date().toISOString(),
+            status: 'in_progress', // 'in_progress' | 'submitted'
+        };
+        demoData.active_sessions.push(session);
+        persist();
+        return session;
+    },
+
+    updateExamSession(examId, userId, answeredCount, totalQuestions) {
+        const sessions = demoData.active_sessions || [];
+        const idx = sessions.findIndex(s => s.exam_id === examId && s.user_id === userId);
+        if (idx >= 0) {
+            sessions[idx].answered_count = answeredCount;
+            sessions[idx].total_questions = totalQuestions;
+            sessions[idx].last_activity = new Date().toISOString();
+            persist();
+        }
+    },
+
+    endExamSession(examId, userId) {
+        const sessions = demoData.active_sessions || [];
+        const idx = sessions.findIndex(s => s.exam_id === examId && s.user_id === userId);
+        if (idx >= 0) {
+            sessions[idx].status = 'submitted';
+            sessions[idx].last_activity = new Date().toISOString();
+            persist();
+        }
+    },
+
+    getActiveSessionsForExam(examId) {
+        return (demoData.active_sessions || [])
+            .filter(s => s.exam_id === examId && s.status === 'in_progress')
+            .map(s => {
+                const user = demoData.users.find(u => u.id === s.user_id);
+                const cheatingCount = (demoData.cheating_logs || []).filter(
+                    l => l.exam_id === examId && l.user_id === s.user_id
+                ).length;
+                return {
+                    ...s,
+                    user: user ? (() => { const { password_hash, ...safe } = user; return safe; })() : null,
+                    cheating_count: cheatingCount,
+                };
+            });
+    },
+
+    getExamMonitorData(examId) {
+        const exam = this.getExamById(examId);
+        if (!exam) return null;
+        const activeSessions = this.getActiveSessionsForExam(examId);
+        const completedResults = demoData.exam_results.filter(r => r.exam_id === examId);
+        const totalAssigned = new Set([
+            ...(demoData.active_sessions || []).filter(s => s.exam_id === examId).map(s => s.user_id),
+            ...completedResults.map(r => r.user_id),
+        ]).size;
+        return {
+            exam,
+            activeSessions,
+            completedCount: completedResults.length,
+            totalAssigned,
+            completedResults: completedResults.map(r => {
+                const user = demoData.users.find(u => u.id === r.user_id);
+                return {
+                    ...r,
+                    user: user ? (() => { const { password_hash, ...safe } = user; return safe; })() : null,
+                    cheating_count: (demoData.cheating_logs || []).filter(l => l.exam_id === examId && l.user_id === r.user_id).length,
+                };
+            }),
+        };
+    },
+
+    // Cheating detection logs
+    addCheatingLog(examId, userId, type, detail = '') {
+        const log = {
+            id: generateId(),
+            exam_id: examId,
+            user_id: userId,
+            type, // 'tab_switch', 'copy', 'paste', 'right_click', 'fullscreen_exit', 'devtools'
+            detail,
+            timestamp: new Date().toISOString(),
+        };
+        demoData.cheating_logs.push(log);
+        persist();
+        return log;
+    },
+
+    getCheatingLogs(examId = null, userId = null) {
+        let logs = [...(demoData.cheating_logs || [])];
+        if (examId) logs = logs.filter(l => l.exam_id === examId);
+        if (userId) logs = logs.filter(l => l.user_id === userId);
+        return logs.map(l => ({
+            ...l,
+            user: (() => {
+                const u = demoData.users.find(u => u.id === l.user_id);
+                if (!u) return null;
+                const { password_hash, ...safe } = u;
+                return safe;
+            })(),
+            exam: demoData.exams.find(e => e.id === l.exam_id),
+        }));
+    },
+
+    getCheatingCountForResult(examId, userId) {
+        return (demoData.cheating_logs || []).filter(l => l.exam_id === examId && l.user_id === userId).length;
+    },
+
     // Export helpers
     getExamResultsForExport(examId = null) {
         let results = [...demoData.exam_results];
@@ -730,6 +919,7 @@ export const demoApi = {
                 'Số câu đúng': r.correct_count,
                 'Tổng câu': r.total_questions,
                 'Kết quả': r.score >= 5 ? 'Đạt' : 'Không đạt',
+                'Cảnh báo gian lận': (demoData.cheating_logs || []).filter(l => l.exam_id === r.exam_id && l.user_id === r.user_id).length,
                 'Thời gian nộp': new Date(r.submitted_at).toLocaleString('vi-VN'),
             };
         });

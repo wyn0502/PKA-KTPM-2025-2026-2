@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { demoApi } from '@/lib/supabase';
 import {
     FileText, Clock, CheckSquare, Play, CheckCircle2,
-    Shuffle, BookOpen
+    Shuffle, BookOpen, Calendar, Lock
 } from 'lucide-react';
 
 export default function StudentExams({ onStartExam }) {
@@ -73,8 +73,15 @@ export default function StudentExams({ onStartExam }) {
 }
 
 function ExamCard({ exam, onStart, completed }) {
+    const now = new Date();
+    const notYetOpen = exam.start_time && now < new Date(exam.start_time);
+    const expired = exam.end_time && now > new Date(exam.end_time);
+    const isLocked = notYetOpen || expired;
+
+    const formatDT = (dt) => new Date(dt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
     return (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', opacity: completed ? 0.75 : 1 }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', opacity: completed || isLocked ? 0.75 : 1 }}>
             <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                     {exam.subject && (
@@ -84,6 +91,12 @@ function ExamCard({ exam, onStart, completed }) {
                     )}
                     {completed && (
                         <span className="badge badge-success"><CheckCircle2 size={12} /> Đã nộp</span>
+                    )}
+                    {notYetOpen && (
+                        <span className="badge badge-warning"><Lock size={12} /> Chưa mở</span>
+                    )}
+                    {expired && (
+                        <span className="badge badge-danger"><Lock size={12} /> Hết hạn</span>
                     )}
                 </div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 12, color: 'var(--text-heading)' }}>
@@ -104,6 +117,16 @@ function ExamCard({ exam, onStart, completed }) {
                             <span>Trộn đề thi</span>
                         </div>
                     )}
+                    {(exam.start_time || exam.end_time) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Calendar size={16} style={{ color: 'var(--info)' }} />
+                            <span>
+                                {exam.start_time && `Mở: ${formatDT(exam.start_time)}`}
+                                {exam.start_time && exam.end_time && ' — '}
+                                {exam.end_time && `Đóng: ${formatDT(exam.end_time)}`}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
             <div style={{ marginTop: 20 }}>
@@ -111,9 +134,13 @@ function ExamCard({ exam, onStart, completed }) {
                     <button className="btn btn-secondary" style={{ width: '100%' }} disabled>
                         <CheckCircle2 size={18} /> Đã hoàn thành
                     </button>
+                ) : isLocked ? (
+                    <button className="btn btn-secondary" style={{ width: '100%' }} disabled>
+                        <Lock size={18} /> {notYetOpen ? 'Chưa đến giờ thi' : 'Đã hết hạn thi'}
+                    </button>
                 ) : (
                     <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                        if (confirm(`Bắt đầu bài thi "${exam.title}"?\nThời gian: ${exam.duration_minutes} phút\nSố câu: ${exam.total_questions}\n\nBài thi sẽ tự động nộp khi hết giờ.`)) {
+                        if (confirm(`Bắt đầu bài thi "${exam.title}"?\nThời gian: ${exam.duration_minutes} phút\nSố câu: ${exam.total_questions}\n\nBài thi sẽ tự động nộp khi hết giờ.\nHệ thống chống gian lận sẽ được kích hoạt.`)) {
                             onStart(exam.id);
                         }
                     }}>

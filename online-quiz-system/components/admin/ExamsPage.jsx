@@ -5,10 +5,11 @@ import { demoApi } from '@/lib/supabase';
 import { useToast } from '@/lib/toast';
 import {
     ClipboardList, Plus, Pencil, Trash2, X, Play, Pause,
-    Clock, Shuffle, Eye, Users, CheckSquare, AlertCircle
+    Clock, Shuffle, Eye, Users, CheckSquare, AlertCircle,
+    Calendar, Monitor
 } from 'lucide-react';
 
-export default function ExamsPage() {
+export default function ExamsPage({ onMonitorExam }) {
     const [exams, setExams] = useState([]);
     const [questions, setQuestions] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -21,6 +22,7 @@ export default function ExamsPage() {
         title: '', subject_id: '', duration_minutes: 30,
         shuffle_questions: true, shuffle_answers: true, show_result: true,
         status: 'draft', question_ids: [], group_ids: [],
+        start_time: '', end_time: '',
     };
     const [form, setForm] = useState(emptyForm);
 
@@ -37,12 +39,22 @@ export default function ExamsPage() {
         if (!form.title.trim()) { toast.error('Vui lòng nhập tên đề thi'); return; }
         if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
         if (form.question_ids.length === 0) { toast.warning('Chưa chọn câu hỏi nào cho đề thi'); }
+        if (form.start_time && form.end_time && new Date(form.start_time) >= new Date(form.end_time)) {
+            toast.error('Thời gian bắt đầu phải trước thời gian kết thúc');
+            return;
+        }
+
+        const saveData = {
+            ...form,
+            start_time: form.start_time || null,
+            end_time: form.end_time || null,
+        };
 
         if (editing) {
-            demoApi.updateExam(editing.id, form);
+            demoApi.updateExam(editing.id, saveData);
             toast.success('Cập nhật đề thi thành công');
         } else {
-            demoApi.addExam(form);
+            demoApi.addExam(saveData);
             toast.success('Tạo đề thi thành công');
         }
         closeModal();
@@ -63,6 +75,8 @@ export default function ExamsPage() {
             show_result: exam.show_result, status: exam.status,
             question_ids: exam.questions?.map(q => q.id) || [],
             group_ids: exam.groups?.map(g => g.id) || [],
+            start_time: exam.start_time || '',
+            end_time: exam.end_time || '',
         });
         setShowModal(true);
     };
@@ -113,6 +127,19 @@ export default function ExamsPage() {
         closed: { label: 'Đã đóng', badge: 'badge-danger' },
     };
 
+    const formatDateTime = (dt) => {
+        if (!dt) return null;
+        return new Date(dt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const getTimeWindowStatus = (exam) => {
+        if (!exam.start_time && !exam.end_time) return null;
+        const now = new Date();
+        if (exam.start_time && now < new Date(exam.start_time)) return { label: 'Chưa mở', cls: 'badge-warning' };
+        if (exam.end_time && now > new Date(exam.end_time)) return { label: 'Hết hạn', cls: 'badge-danger' };
+        return { label: 'Trong thời gian', cls: 'badge-success' };
+    };
+
     return (
         <div>
             <div className="page-header">
@@ -135,60 +162,83 @@ export default function ExamsPage() {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {exams.map(exam => (
-                        <div key={exam.id} className="card" style={{ padding: 20 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                                <div style={{ flex: 1, minWidth: 200 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                                        <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{exam.title}</h3>
-                                        <span className={`badge ${statusInfo[exam.status]?.badge}`}>
-                                            {statusInfo[exam.status]?.label}
-                                        </span>
-                                        {exam.result_count > 0 && (
-                                            <span className="badge badge-info">{exam.result_count} lượt thi</span>
+                    {exams.map(exam => {
+                        const timeStatus = getTimeWindowStatus(exam);
+                        return (
+                            <div key={exam.id} className="card" style={{ padding: 20 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                                    <div style={{ flex: 1, minWidth: 200 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                                            <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{exam.title}</h3>
+                                            <span className={`badge ${statusInfo[exam.status]?.badge}`}>
+                                                {statusInfo[exam.status]?.label}
+                                            </span>
+                                            {timeStatus && (
+                                                <span className={`badge ${timeStatus.cls}`}>
+                                                    <Calendar size={12} /> {timeStatus.label}
+                                                </span>
+                                            )}
+                                            {exam.result_count > 0 && (
+                                                <span className="badge badge-info">{exam.result_count} lượt thi</span>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            {exam.subject && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <AlertCircle size={14} /> {exam.subject.name}
+                                                </span>
+                                            )}
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <Clock size={14} /> {exam.duration_minutes} phút
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <CheckSquare size={14} /> {exam.questions?.length || 0} câu
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <Users size={14} /> {exam.groups?.length > 0 ? exam.groups.map(g => g.name).join(', ') : 'Chưa gán nhóm'}
+                                            </span>
+                                            {exam.shuffle_questions && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Shuffle size={14} /> Trộn đề
+                                                </span>
+                                            )}
+                                            {exam.show_result && (
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Eye size={14} /> Hiện KQ
+                                                </span>
+                                            )}
+                                        </div>
+                                        {(exam.start_time || exam.end_time) && (
+                                            <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                                                {exam.start_time && (
+                                                    <span>Bắt đầu: {formatDateTime(exam.start_time)}</span>
+                                                )}
+                                                {exam.end_time && (
+                                                    <span>Kết thúc: {formatDateTime(exam.end_time)}</span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                        {exam.subject && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <AlertCircle size={14} /> {exam.subject.name}
-                                            </span>
+                                    <div className="btn-group">
+                                        {exam.status === 'active' && onMonitorExam && (
+                                            <button className="btn btn-sm btn-info" onClick={() => onMonitorExam(exam.id)} title="Giám sát trực tiếp">
+                                                <Monitor size={14} /> Giám sát
+                                            </button>
                                         )}
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Clock size={14} /> {exam.duration_minutes} phút
-                                        </span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <CheckSquare size={14} /> {exam.questions?.length || 0} câu
-                                        </span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Users size={14} /> {exam.groups?.length > 0 ? exam.groups.map(g => g.name).join(', ') : 'Chưa gán nhóm'}
-                                        </span>
-                                        {exam.shuffle_questions && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Shuffle size={14} /> Trộn đề
-                                            </span>
-                                        )}
-                                        {exam.show_result && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Eye size={14} /> Hiện KQ
-                                            </span>
-                                        )}
+                                        <button className={`btn btn-sm ${exam.status === 'active' ? 'btn-warning' : 'btn-success'}`} onClick={() => toggleStatus(exam)}>
+                                            {exam.status === 'active' ? <><Pause size={14} /> Đóng</> : <><Play size={14} /> Mở</>}
+                                        </button>
+                                        <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(exam)}>
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(exam)}>
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
-                                </div>
-                                <div className="btn-group">
-                                    <button className={`btn btn-sm ${exam.status === 'active' ? 'btn-warning' : 'btn-success'}`} onClick={() => toggleStatus(exam)}>
-                                        {exam.status === 'active' ? <><Pause size={14} /> Đóng</> : <><Play size={14} /> Mở</>}
-                                    </button>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(exam)}>
-                                        <Pencil size={14} />
-                                    </button>
-                                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(exam)}>
-                                        <Trash2 size={14} />
-                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -214,8 +264,21 @@ export default function ExamsPage() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Thời gian (phút)</label>
+                                    <label className="form-label">Thời gian làm bài (phút)</label>
                                     <input type="number" className="form-input" min="1" max="300" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 30 })} />
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Thời gian mở bài thi</label>
+                                    <input type="datetime-local" className="form-input" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Thời gian đóng bài thi</label>
+                                    <input type="datetime-local" className="form-input" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} />
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
                                 </div>
                             </div>
 

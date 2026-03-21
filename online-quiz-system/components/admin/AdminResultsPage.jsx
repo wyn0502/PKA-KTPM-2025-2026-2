@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { demoApi } from '@/lib/supabase';
 import { useToast } from '@/lib/toast';
-import { BarChart3, Search, User, Trophy, Calendar, Download } from 'lucide-react';
+import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminResultsPage() {
@@ -47,7 +47,6 @@ export default function AdminResultsPage() {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi');
 
-        // Auto-width columns
         const colWidths = Object.keys(data[0]).map(key => ({
             wch: Math.max(key.length, ...data.map(row => String(row[key]).length)) + 2
         }));
@@ -127,41 +126,54 @@ export default function AdminResultsPage() {
                                 <th>Đề thi</th>
                                 <th style={{ textAlign: 'center' }}>Điểm</th>
                                 <th style={{ textAlign: 'center' }}>Đúng</th>
+                                <th style={{ textAlign: 'center' }}>Gian lận</th>
                                 <th>Thời gian nộp</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((r, i) => (
-                                <tr key={r.id}>
-                                    <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div className="avatar-sm">
-                                                {r.user?.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
+                            {filtered.map((r, i) => {
+                                const cheatingCount = demoApi.getCheatingCountForResult(r.exam_id, r.user_id);
+                                return (
+                                    <tr key={r.id}>
+                                        <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div className="avatar-sm">
+                                                    {r.user?.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user?.full_name}</div>
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.user?.student_id}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user?.full_name}</div>
-                                                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.user?.student_id}</div>
+                                        </td>
+                                        <td>{r.exam?.title}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`}>
+                                                {r.score}/10
+                                            </span>
+                                        </td>
+                                        <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            {r.correct_count}/{r.total_questions}
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            {cheatingCount > 0 ? (
+                                                <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                    <ShieldAlert size={12} /> {cheatingCount}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>0</span>
+                                            )}
+                                        </td>
+                                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <Calendar size={14} />
+                                                {new Date(r.submitted_at).toLocaleString('vi-VN')}
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>{r.exam?.title}</td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`}>
-                                            {r.score}/10
-                                        </span>
-                                    </td>
-                                    <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                        {r.correct_count}/{r.total_questions}
-                                    </td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            <Calendar size={14} />
-                                            {new Date(r.submitted_at).toLocaleString('vi-VN')}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
