@@ -31,10 +31,12 @@ export default function SubjectsPage() {
             return;
         }
         if (editing) {
-            await api.updateSubject(editing.id, form);
+            const res = await api.updateSubject(editing.id, form);
+            if (res?.success === false) { toast.error(res.error || 'Cập nhật thất bại'); return; }
             toast.success('Cập nhật môn học thành công');
         } else {
-            await api.addSubject(form);
+            const res = await api.addSubject(form);
+            if (res?.success === false) { toast.error(res.error || 'Thêm môn học thất bại'); return; }
             toast.success('Thêm môn học thành công');
         }
         closeModal();
@@ -54,16 +56,14 @@ export default function SubjectsPage() {
     };
 
     const handleDelete = async (subject) => {
+        if (!confirm(`Xóa môn học "${subject.name}"? Tất cả câu hỏi thuộc môn này cũng sẽ bị xóa.`)) return;
         const result = await api.deleteSubject(subject.id);
-        if (result.success === false) {
-            toast.error(result.error);
+        if (result?.success === false) {
+            toast.error(result.error || 'Xóa thất bại');
             return;
         }
-        if (confirm(`Xóa môn học "${subject.name}"?`)) {
-            await api.deleteSubject(subject.id);
-            toast.success('Đã xóa môn học');
-            loadData();
-        }
+        toast.success('Đã xóa môn học');
+        loadData();
     };
 
     return (
