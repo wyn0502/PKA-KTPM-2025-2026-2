@@ -1,0 +1,225 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Press Start 2P', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%);
+  min-width: 320px;
+  padding: 0;
+}
+
+.container {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 8px;
+  box-shadow:
+    0 4px 0 #00897b,
+    0 8px 16px rgba(0, 0, 0, 0.15);
+  border: 3px solid #00897b;
+}
+
+h1 {
+  font-size: 16px;
+  color: #00695c;
+  text-align: center;
+  margin-bottom: 6px;
+  text-shadow: 2px 2px 0 #b2dfdb;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: #4db6ac;
+  text-align: center;
+  margin-bottom: 20px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Mario-style buttons */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Primary button - Mario green pipe style */
+.btn-primary {
+  background: linear-gradient(180deg, #26a69a 0%, #00897b 50%, #00796b 100%);
+  color: #ffffff;
+  border: 3px solid #004d40;
+  box-shadow:
+    0 4px 0 #004d40,
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  text-shadow: 1px 1px 0 #004d40;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4db6ac 0%, #26a69a 50%, #00897b 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 #004d40,
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #004d40,
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary button - Mario coin block style */
+.btn-secondary {
+  background: linear-gradient(180deg, #80deea 0%, #4dd0e1 50%, #26c6da 100%);
+  color: #004d40;
+  border: 3px solid #00838f;
+  box-shadow:
+    0 4px 0 #00838f,
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #b2ebf2 0%, #80deea 50%, #4dd0e1 100%);
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 0 #00838f,
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #00838f,
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.icon {
+  font-size: 16px;
+}
+
+/* Status messages - Mario style */
+.status {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+  border: 2px solid;
+}
+
+.status.loading {
+  background: #e0f7fa;
+  color: #00695c;
+  border-color: #4db6ac;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.status.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #66bb6a;
+  box-shadow: 0 2px 0 #43a047;
+}
+
+.status.error {
+  background: #ffebee;
+  color: #c62828;
+  border-color: #ef5350;
+  box-shadow: 0 2px 0 #e53935;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Result box - Mario question block style */
+.result {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%);
+  border-radius: 6px;
+  border: 3px solid #00897b;
+  box-shadow:
+    0 3px 0 #00695c,
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+}
+
+.result h3 {
+  font-size: 13px;
+  color: #00695c;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.result p {
+  font-size: 12px;
+  color: #00796b;
+  margin-bottom: 8px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.result p strong {
+  color: #004d40;
+}
+
+/* Pixel art decoration */
+.container::before {
+  content: '★';
+  position: absolute;
+  top: -8px;
+  right: 10px;
+  font-size: 20px;
+  color: #ffd54f;
+  text-shadow: 1px 1px 0 #ff8f00;
+}

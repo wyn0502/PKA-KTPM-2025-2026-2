@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Wayground Quiz Scraper",
+  "version": "1.0",
+  "description": "Scrape quiz questions from wayground.com",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://wayground.com/*",
+    "https://*.wayground.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
