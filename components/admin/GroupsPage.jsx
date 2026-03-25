@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
-import { Users, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState([]);
@@ -11,26 +11,61 @@ export default function GroupsPage() {
     const [showModal, setShowModal] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState({ name: '', description: '', member_ids: [] });
+    const [memberSearch, setMemberSearch] = useState('');
+    const [memberDept, setMemberDept] = useState('');
+    const [memberClass, setMemberClass] = useState('');
     const toast = useToast();
 
     useEffect(() => { loadData(); }, []);
 
     const loadData = async () => {
-        const [g, users] = await Promise.all([
+        const [g, s] = await Promise.all([
             api.getGroups(),
-            api.getUsers(),
+            api.getStudents(),
         ]);
         setGroups(g);
-        setStudents(users.filter(u => u.role === 'student'));
+        setStudents(s);
     };
+
+    const departments = useMemo(() => [...new Set(students.map(s => s.department).filter(Boolean))].sort(), [students]);
+    const classes = useMemo(() => {
+        const filtered = memberDept ? students.filter(s => s.department === memberDept) : students;
+        return [...new Set(filtered.map(s => s.class_name).filter(Boolean))].sort();
+    }, [students, memberDept]);
+
+    const filteredStudents = useMemo(() => students.filter(s => {
+        if (memberDept && s.department !== memberDept) return false;
+        if (memberClass && s.class_name !== memberClass) return false;
+        if (memberSearch) {
+            const q = memberSearch.toLowerCase();
+            return s.full_name?.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q);
+        }
+        return true;
+    }), [students, memberSearch, memberDept, memberClass]);
 
     const handleSave = async () => {
         if (!form.name.trim()) { toast.error('Vui lòng nhập tên nhóm'); return; }
+
+        let groupId;
         if (editing) {
-            await api.updateGroup(editing.id, form);
+            await api.updateGroup(editing.id, { name: form.name, description: form.description });
+            groupId = editing.id;
+
+            // Compute member changes
+            const oldIds = new Set(editing.members?.map(m => m.id) || []);
+            const newIds = new Set(form.member_ids);
+            const toAdd = form.member_ids.filter(id => !oldIds.has(id));
+            const toRemove = [...oldIds].filter(id => !newIds.has(id));
+            await Promise.all([
+                ...toAdd.map(uid => api.addGroupMember(groupId, uid)),
+                ...toRemove.map(uid => api.removeGroupMember(groupId, uid)),
+            ]);
             toast.success('Cập nhật nhóm thành công');
         } else {
-            await api.addGroup(form);
+            const res = await api.addGroup({ name: form.name, description: form.description });
+            if (!res.success || !res.group) { toast.error('Tạo nhóm thất bại'); return; }
+            groupId = res.group.id;
+            await Promise.all(form.member_ids.map(uid => api.addGroupMember(groupId, uid)));
             toast.success('Tạo nhóm thành công');
         }
         closeModal();
@@ -41,13 +76,16 @@ export default function GroupsPage() {
         setShowModal(false);
         setEditing(null);
         setForm({ name: '', description: '', member_ids: [] });
+        setMemberSearch('');
+        setMemberDept('');
+        setMemberClass('');
     };
 
     const handleEdit = (group) => {
         setEditing(group);
         setForm({
             name: group.name,
-            description: group.description,
+            description: group.description || '',
             member_ids: group.members?.map(m => m.id) || [],
         });
         setShowModal(true);
@@ -142,7 +180,7 @@ export default function GroupsPage() {
 
             {showModal && (
                 <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2 className="modal-title">{editing ? 'Sửa nhóm' : 'Tạo nhóm mới'}</h2>
                             <button className="modal-close" onClick={closeModal}><X size={20} /></button>
@@ -158,14 +196,52 @@ export default function GroupsPage() {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Thành viên ({form.member_ids.length} đã chọn)</label>
-                                <div style={{ maxHeight: 250, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 8 }}>
+
+                                {/* Search + filter bar */}
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                                    <div className="search-input" style={{ flex: 1, minWidth: 160 }}>
+                                        <Search size={15} />
+                                        <input
+                                            placeholder="Tìm tên hoặc mã SV..."
+                                            value={memberSearch}
+                                            onChange={e => setMemberSearch(e.target.value)}
+                                        />
+                                    </div>
+                                    {departments.length > 0 && (
+                                        <select
+                                            className="filter-select"
+                                            style={{ minWidth: 130 }}
+                                            value={memberDept}
+                                            onChange={e => { setMemberDept(e.target.value); setMemberClass(''); }}
+                                        >
+                                            <option value="">Tất cả khoa</option>
+                                            {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    )}
+                                    {classes.length > 0 && (
+                                        <select
+                                            className="filter-select"
+                                            style={{ minWidth: 120 }}
+                                            value={memberClass}
+                                            onChange={e => setMemberClass(e.target.value)}
+                                        >
+                                            <option value="">Tất cả lớp</option>
+                                            {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+
+                                <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 8 }}>
                                     {students.length === 0 ? (
                                         <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>Chưa có sinh viên. Thêm sinh viên trước.</p>
-                                    ) : students.map(s => (
+                                    ) : filteredStudents.length === 0 ? (
+                                        <p style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)' }}>Không tìm thấy sinh viên</p>
+                                    ) : filteredStudents.map(s => (
                                         <label key={s.id} className="form-checkbox" style={{ padding: '8px 12px' }}>
                                             <input type="checkbox" checked={form.member_ids.includes(s.id)} onChange={() => toggleMember(s.id)} />
-                                            <span>{s.full_name}</span>
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}>{s.student_id}</span>
+                                            <span style={{ flex: 1 }}>{s.full_name}</span>
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{s.student_id}</span>
+                                            {s.class_name && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: 4 }}>· {s.class_name}</span>}
                                         </label>
                                     ))}
                                 </div>

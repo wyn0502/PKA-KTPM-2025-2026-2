@@ -57,6 +57,7 @@ export default function AdminResultsPage() {
             'Điểm': r.score,
             'Câu đúng': r.correct_count,
             'Tổng câu': r.total_questions,
+            'Vi phạm gian lận': r.cheating_count ?? 0,
             'Thời gian nộp': new Date(r.submitted_at).toLocaleString('vi-VN'),
         }));
         const ws = XLSX.utils.json_to_sheet(data);

@@ -13,8 +13,23 @@ export default function ExamMonitor({ examId, onBack }) {
     const intervalRef = useRef(null);
 
     const loadData = async () => {
-        const monitorData = await api.getExamMonitorData(examId);
-        setData(monitorData);
+        const [exam, sessions, results] = await Promise.all([
+            api.getExamById(examId),
+            api.getActiveSessions(examId),
+            api.getResultsByExam(examId),
+        ]);
+        if (!exam) return;
+        const totalAssigned = new Set([
+            ...sessions.map(s => s.user_id),
+            ...results.map(r => r.user_id),
+        ]).size;
+        setData({
+            exam,
+            activeSessions: sessions,
+            completedCount: results.length,
+            totalAssigned,
+            completedResults: results,
+        });
     };
 
     useEffect(() => {
@@ -119,11 +134,11 @@ export default function ExamMonitor({ examId, onBack }) {
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                     <div className="avatar-sm" style={{ background: 'var(--gradient-primary)' }}>
-                                                        {s.user?.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
+                                                        {s.user_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{s.user?.full_name}</div>
-                                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{s.user?.student_id}</div>
+                                                        <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{s.user_name}</div>
+                                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{s.student_id}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -187,11 +202,11 @@ export default function ExamMonitor({ examId, onBack }) {
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <div className="avatar-sm">
-                                                    {r.user?.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
+                                                    {r.user_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user?.full_name}</div>
-                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.user?.student_id}</div>
+                                                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user_name}</div>
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.student_id}</div>
                                                 </div>
                                             </div>
                                         </td>
