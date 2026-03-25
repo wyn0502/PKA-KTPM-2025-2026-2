@@ -1,10 +1,11 @@
-# Hướng dẫn triển khai Hệ thống thi trắc nghiệm trực tuyến
+# Hướng dẫn triển khai QuizPro
 
-## Tổng quan
+## Hai chế độ hoạt động
 
-Hệ thống thi trắc nghiệm trực tuyến hỗ trợ 2 chế độ:
-- **Demo Mode** (mặc định): Dữ liệu lưu trong localStorage, không cần backend
-- **Production Mode**: Kết nối Supabase để lưu trữ dữ liệu thực
+| Chế độ | Khi nào | Dữ liệu |
+|--------|---------|---------|
+| **Demo Mode** | Không có biến môi trường Supabase | localStorage (mất khi xóa cache) |
+| **Production Mode** | Có `NEXT_PUBLIC_SUPABASE_*` | PostgreSQL trên Supabase |
 
 ---
 
@@ -12,34 +13,32 @@ Hệ thống thi trắc nghiệm trực tuyến hỗ trợ 2 chế độ:
 
 ```bash
 npm install
-npm run dev
-# Mở http://localhost:3000
+npm run dev          # http://localhost:3000
+npm run build        # Kiểm tra lỗi build
 ```
 
-Không cần cấu hình gì thêm — hệ thống chạy ở Demo Mode.
+Chạy ngay không cần cấu hình — Demo Mode tự kích hoạt.
 
 ---
 
 ## 2. Cấu hình Supabase (Production)
 
-### 2.1. Tạo project Supabase
+### Bước 1 — Tạo project
 
-1. Đăng nhập [app.supabase.com](https://app.supabase.com)
-2. Click **New Project** → đặt tên, chọn region **Southeast Asia (Singapore)**, đặt database password
-3. Chờ project khởi tạo xong (~1 phút)
+1. Đăng nhập [app.supabase.com](https://app.supabase.com) → **New Project**
+2. Region: **Southeast Asia (Singapore)**
+3. Chờ khởi tạo (~1 phút)
 
-### 2.2. Tắt xác nhận email (quan trọng)
+### Bước 2 — Tắt xác nhận email ⚠️
 
-Vào **Authentication > Providers > Email** → tắt **"Confirm email"** → Save.
+**Authentication → Providers → Email → tắt "Confirm email" → Save**
 
-> Nếu không tắt, người dùng sẽ cần xác nhận email trước khi đăng nhập.
+> Nếu không tắt, người dùng cần xác nhận email trước khi đăng nhập được.
 
-### 2.3. Tạo bảng database
-
-Vào **SQL Editor** → chạy script sau:
+### Bước 3 — Tạo bảng (SQL Editor)
 
 ```sql
--- Bảng users
+-- Users
 CREATE TABLE users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -53,14 +52,14 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Bảng môn học
+-- Subjects
 CREATE TABLE subjects (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT
 );
 
--- Bảng câu hỏi
+-- Questions
 CREATE TABLE questions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
@@ -69,7 +68,7 @@ CREATE TABLE questions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Bảng đáp án
+-- Answers
 CREATE TABLE answers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   question_id UUID REFERENCES questions(id) ON DELETE CASCADE,
@@ -77,7 +76,7 @@ CREATE TABLE answers (
   is_correct BOOLEAN DEFAULT false
 );
 
--- Bảng đề thi
+-- Exams
 CREATE TABLE exams (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -93,35 +92,32 @@ CREATE TABLE exams (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Bảng câu hỏi trong đề thi
 CREATE TABLE exam_questions (
   exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
   question_id UUID REFERENCES questions(id) ON DELETE CASCADE,
   PRIMARY KEY (exam_id, question_id)
 );
 
--- Bảng nhóm thi
+-- Groups
 CREATE TABLE groups (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT
 );
 
--- Thành viên nhóm
 CREATE TABLE group_members (
   group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   PRIMARY KEY (group_id, user_id)
 );
 
--- Nhóm được gán đề thi
 CREATE TABLE exam_groups (
   exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
   group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
   PRIMARY KEY (exam_id, group_id)
 );
 
--- Kết quả thi
+-- Results
 CREATE TABLE exam_results (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
@@ -134,7 +130,7 @@ CREATE TABLE exam_results (
   submitted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Log gian lận
+-- Anti-cheat
 CREATE TABLE cheating_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
@@ -144,7 +140,7 @@ CREATE TABLE cheating_logs (
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Phiên thi đang diễn ra
+-- Active sessions
 CREATE TABLE active_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
@@ -156,7 +152,7 @@ CREATE TABLE active_sessions (
   status TEXT DEFAULT 'in_progress'
 );
 
--- Index
+-- Indexes
 CREATE INDEX idx_questions_subject ON questions(subject_id);
 CREATE INDEX idx_answers_question ON answers(question_id);
 CREATE INDEX idx_exam_results_exam ON exam_results(exam_id);
@@ -165,10 +161,9 @@ CREATE INDEX idx_cheating_logs_exam ON cheating_logs(exam_id);
 CREATE INDEX idx_active_sessions_exam ON active_sessions(exam_id);
 ```
 
-### 2.4. Cấu hình Row Level Security (RLS)
+### Bước 4 — Bật RLS + Policies
 
 ```sql
--- Bật RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
@@ -182,67 +177,62 @@ ALTER TABLE exam_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cheating_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_sessions ENABLE ROW LEVEL SECURITY;
 
--- Policies (cho phép tất cả)
-CREATE POLICY "Allow all" ON users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON subjects FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON questions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON answers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON exams FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON exam_questions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON groups FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON group_members FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON exam_groups FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON exam_results FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON cheating_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all" ON active_sessions FOR ALL USING (true) WITH CHECK (true);
+-- Cho phép tất cả (đơn giản hóa cho dự án học thuật)
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['users','subjects','questions','answers','exams',
+    'exam_questions','groups','group_members','exam_groups','exam_results',
+    'cheating_logs','active_sessions']
+  LOOP
+    EXECUTE format('CREATE POLICY "allow_all" ON %I FOR ALL USING (true) WITH CHECK (true)', t);
+  END LOOP;
+END $$;
 ```
 
-### 2.5. Tạo tài khoản Admin
+### Bước 5 — Tạo tài khoản Admin
 
-Vào **Authentication > Users** → **Add user** → nhập email & password.
+**Authentication → Users → Add user** → nhập email & mật khẩu
 
-Sau đó vào **SQL Editor** → thêm profile:
-
+Sau đó vào **SQL Editor**:
 ```sql
-INSERT INTO users (email, full_name, role, password_hash)
-VALUES ('your-admin@email.com', 'Admin', 'admin', '');
+INSERT INTO users (email, full_name, role)
+VALUES ('your-admin@email.com', 'Tên Giảng Viên', 'admin');
 ```
 
-### 2.6. Lấy API Keys
+### Bước 6 — Lấy API Keys
 
-Vào **Settings > API**:
-- **Project URL**: `https://xxxxx.supabase.co`
-- **anon public key**: `eyJhbGciOiJIUzI1NiIs...`
+**Settings → API** → Copy:
+- `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+- `anon public key` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ---
 
 ## 3. Biến môi trường
 
-Tạo file `.env.local` (xem `.env.example`):
-
+**Local** — tạo `.env.local` (dựa theo `.env.example`):
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
 ```
 
-> Khi không có biến môi trường → tự động chạy **Demo Mode** (localStorage).
+**Vercel** — Project Settings → Environment Variables → thêm 2 biến trên.
 
 ---
 
 ## 4. Deploy lên Vercel
 
-### Cách 1: Deploy từ GitHub (Khuyến nghị)
+### Từ GitHub (Khuyến nghị)
 
 1. Push code lên GitHub
-2. Đăng nhập [vercel.com](https://vercel.com) → **Add New > Project**
-3. Import repository
-4. Cấu hình:
-   - **Framework Preset**: Next.js (tự nhận)
-   - **Root Directory**: để trống (Next.js nằm ở root repo)
-   - **Environment Variables**: thêm `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5. Click **Deploy**
+2. [vercel.com](https://vercel.com) → **Add New → Project** → Import repo
+3. Cấu hình:
+   - **Framework**: Next.js *(tự nhận)*
+   - **Root Directory**: để **trống** *(Next.js ở root repo)*
+   - **Environment Variables**: thêm 2 biến Supabase
+4. **Deploy**
 
-### Cách 2: Vercel CLI
+### Vercel CLI
 
 ```bash
 npm i -g vercel
@@ -254,10 +244,11 @@ vercel --prod
 
 ## 5. Xử lý lỗi thường gặp
 
-| Lỗi | Nguyên nhân | Cách fix |
-|-----|-------------|----------|
-| `404: NOT_FOUND` trên Vercel | Root Directory sai | Đảm bảo Root Directory = trống (không phải `online-quiz-system`) |
-| `Invalid login credentials` | Sai email/password | Kiểm tra lại thông tin đăng nhập |
-| `Email not confirmed` | Chưa xác nhận email | Tắt email confirmation trong Supabase **Authentication > Providers > Email** |
-| `400 Bad Request` khi đăng nhập | Env vars không đúng | Kiểm tra `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY` trong Vercel |
-| Dữ liệu mất sau reload | Đang ở Demo Mode | Cấu hình Supabase env vars |
+| Lỗi | Nguyên nhân | Giải pháp |
+|-----|-------------|-----------|
+| `404: NOT_FOUND` trên Vercel | Root Directory sai | Để trống Root Directory trong Vercel settings |
+| Màn hình loading vô tận | Supabase `getSession()` lỗi | Kiểm tra env vars, hoặc xóa env vars để dùng Demo Mode |
+| `invalid_credentials` | Sai mật khẩu | Kiểm tra lại |
+| `Email not confirmed` | Chưa xác nhận email | Tắt "Confirm email" trong Supabase Auth settings |
+| Dashboard hiện dữ liệu cũ | Đang ở Demo Mode | Thêm Supabase env vars, hoặc refresh trang |
+| `400 Bad Request` khi login | Env vars không đúng | Kiểm tra URL và anon key |

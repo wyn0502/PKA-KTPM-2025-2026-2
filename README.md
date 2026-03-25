@@ -1,42 +1,86 @@
-# Hệ thống thi trắc nghiệm trực tuyến
+# QuizPro — Hệ thống Thi trắc nghiệm Trực tuyến
 
-Nền tảng thi trắc nghiệm hiện đại dành cho giảng viên và sinh viên, xây dựng bằng **Next.js 16 + Supabase**.
+> Bài tập lớn môn **Kỹ Thuật Phần Mềm** — Trường Đại học Phenikaa, Khoa CNTT, HK2 2025–2026
 
-## Tính năng
+**Live demo:** https://online-quiz-eight-mu.vercel.app
+**Mã nguồn:** https://github.com/wyn0502/PKA-KTPM-2025-2026-2
 
-- **Admin:** Quản lý môn học, ngân hàng câu hỏi, đề thi, sinh viên, nhóm thi, kết quả
-- **Sinh viên:** Làm bài thi trực tuyến, xem lịch sử & điểm số
-- **Chống gian lận:** Phát hiện chuyển tab, copy/paste, thoát fullscreen, mở DevTools
-- **Giám sát thi realtime:** Admin theo dõi tiến độ từng sinh viên
-- **Import hàng loạt:** Nhập danh sách sinh viên từ Excel/CSV
-- **Xuất kết quả:** Tải kết quả thi ra file Excel
-- **Tùy chỉnh thương hiệu:** Đổi tên hệ thống & logo trong cài đặt admin
-- **Demo Mode:** Chạy hoàn toàn bằng localStorage, không cần Supabase
+---
+
+## Giới thiệu
+
+QuizPro là nền tảng quản lý và tổ chức thi trắc nghiệm trực tuyến dành cho giảng viên và sinh viên đại học. Hệ thống tự động hóa toàn bộ quy trình: tạo ngân hàng câu hỏi → thiết lập đề thi → tổ chức thi → chấm điểm → thống kê kết quả.
+
+---
+
+## Tính năng chính
+
+### Admin (Giảng viên)
+| Tính năng | Mô tả |
+|-----------|-------|
+| Dashboard | Thống kê tổng quan, biểu đồ phân bố điểm & độ khó |
+| Môn học | CRUD môn học |
+| Ngân hàng câu hỏi | CRUD câu hỏi + đáp án, lọc theo môn/độ khó, import Excel |
+| Đề thi | Tạo đề, cấu hình thời gian, trộn câu/đáp án, phân nhóm |
+| Quản lý sinh viên | CRUD + import hàng loạt từ Excel/CSV |
+| Nhóm thi | Phân nhóm sinh viên, gán đề thi cho nhóm |
+| Giám sát thi | Theo dõi tiến độ làm bài realtime, xem log gian lận |
+| Kết quả thi | Thống kê chi tiết, xuất Excel |
+| Xem với tư cách SV | Preview toàn bộ trải nghiệm sinh viên (kết quả không lưu) |
+| Cài đặt hệ thống | Đổi tên app & logo |
+
+### Student (Sinh viên)
+| Tính năng | Mô tả |
+|-----------|-------|
+| Bài thi | Xem danh sách đề được giao, vào thi |
+| Làm bài | Timer đếm ngược, điều hướng câu, đánh dấu câu cần xem lại |
+| Kết quả | Xem điểm & đáp án ngay sau nộp |
+| Lịch sử | Xem lịch sử & kết quả các lần thi |
+
+### Chống gian lận
+- Phát hiện **chuyển tab / cửa sổ**
+- Phát hiện **copy, paste, cut, chuột phải**
+- Phát hiện **thoát toàn màn hình**
+- Phát hiện **mở DevTools** (F12, Ctrl+Shift+I, Ctrl+U)
+- Ghi **log chi tiết** mọi hành vi vi phạm
+
+### Xác thực
+- Đăng nhập bằng **Email** hoặc **Mã sinh viên**
+- Hỗ trợ **Supabase Auth** (production) hoặc **Demo Mode** (localStorage)
+
+---
 
 ## Công nghệ
 
-| Package | Phiên bản |
-|---------|-----------|
-| Next.js | 16 |
-| React | 19 |
-| Supabase JS | ^2.97 |
-| Recharts | ^3.7 |
-| xlsx | ^0.18 |
-| lucide-react | ^0.575 |
+| Layer | Công nghệ | Phiên bản |
+|-------|-----------|-----------|
+| Frontend | Next.js (React) | 16 / 19 |
+| Styling | CSS thuần — Dark theme | — |
+| Backend/DB | Supabase (PostgreSQL) | ^2.97 |
+| Charts | Recharts | ^3.7 |
+| Excel | xlsx | ^0.18 |
+| Icons | lucide-react | ^0.575 |
+| Hosting | Vercel (CI/CD từ GitHub) | — |
+
+---
 
 ## Chạy local
 
 ```bash
+git clone https://github.com/wyn0502/PKA-KTPM-2025-2026-2.git
+cd PKA-KTPM-2025-2026-2
 npm install
 npm run dev
 # Mở http://localhost:3000
 ```
 
-> Không cần cấu hình Supabase — hệ thống tự chạy ở **Demo Mode** với dữ liệu localStorage.
+> Không cần cấu hình gì thêm — tự chạy **Demo Mode** với dữ liệu mẫu.
 
-## Cấu hình Supabase (Production)
+---
 
-Tạo file `.env.local` (xem `.env.example`):
+## Cấu hình Production (Supabase)
+
+Tạo file `.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -45,43 +89,52 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 Xem [DEPLOY.md](./DEPLOY.md) để biết hướng dẫn đầy đủ.
 
-## Deploy
-
-Repo này được deploy tự động lên **Vercel** từ nhánh `main`.
-Xem [DEPLOY.md](./DEPLOY.md) để biết cách cấu hình.
+---
 
 ## Cấu trúc project
 
 ```
 ├── app/
-│   ├── globals.css       CSS toàn cục (dark theme)
-│   ├── layout.js         Root layout + metadata
-│   └── page.js           Entry point (Providers)
+│   ├── globals.css           Dark theme CSS (2000+ dòng)
+│   ├── layout.js             Root layout + metadata
+│   └── page.js               Entry point (SettingsProvider > AuthProvider > ToastProvider)
 ├── components/
-│   ├── admin/            Các trang quản trị
-│   │   ├── AdminDashboard.jsx
-│   │   ├── AdminHome.jsx
-│   │   ├── ExamsPage.jsx
-│   │   ├── ExamMonitor.jsx
-│   │   ├── StudentsPage.jsx
-│   │   ├── QuestionsPage.jsx
-│   │   ├── SubjectsPage.jsx
-│   │   ├── GroupsPage.jsx
-│   │   ├── AdminResultsPage.jsx
-│   │   ├── ImportWayground.jsx
-│   │   └── SystemSettingsPage.jsx
-│   ├── student/          Các trang sinh viên
-│   │   ├── StudentDashboard.jsx
-│   │   ├── StudentExams.jsx
-│   │   ├── TakeExam.jsx
-│   │   └── StudentResults.jsx
-│   ├── AppRouter.jsx
-│   ├── LoginPage.jsx
-│   └── Sidebar.jsx
+│   ├── admin/
+│   │   ├── AdminDashboard.jsx     Router + preview-as-student mode
+│   │   ├── AdminHome.jsx          Dashboard + charts
+│   │   ├── ExamsPage.jsx          Quản lý đề thi
+│   │   ├── ExamMonitor.jsx        Giám sát thi realtime
+│   │   ├── StudentsPage.jsx       Quản lý sinh viên
+│   │   ├── QuestionsPage.jsx      Ngân hàng câu hỏi
+│   │   ├── SubjectsPage.jsx       Quản lý môn học
+│   │   ├── GroupsPage.jsx         Nhóm thi
+│   │   ├── AdminResultsPage.jsx   Kết quả & thống kê
+│   │   ├── ImportWayground.jsx    Import câu hỏi Excel
+│   │   └── SystemSettingsPage.jsx Cài đặt hệ thống
+│   ├── student/
+│   │   ├── StudentDashboard.jsx   Layout sinh viên (+ previewMode)
+│   │   ├── StudentExams.jsx       Danh sách bài thi
+│   │   ├── TakeExam.jsx           Thi + chống gian lận (+ previewMode)
+│   │   └── StudentResults.jsx     Lịch sử kết quả
+│   ├── AppRouter.jsx          Routing theo role
+│   ├── LoginPage.jsx          Đăng nhập/đăng ký
+│   └── Sidebar.jsx            Thanh điều hướng
 └── lib/
-    ├── supabase.js       Supabase client + Demo data layer
-    ├── api.js            Async API wrapper (Supabase / Demo)
-    ├── auth.js           Auth context (Supabase Auth / Demo)
-    ├── settings.js       System settings context
-    └── toast.js          Toast notifications
+    ├── supabase.js    Supabase client + Demo data (localStorage)
+    ├── api.js         Unified async API (tự chọn Supabase/Demo)
+    ├── auth.js        Auth context (Supabase Auth / Demo fallback)
+    ├── settings.js    System settings context (tên app, logo)
+    └── toast.js       Toast notifications
 ```
+
+---
+
+## Tài liệu dự án
+
+| File | Nội dung |
+|------|----------|
+| [docs/bao-cao.html](./docs/bao-cao.html) | Báo cáo bài tập lớn (in → PDF) |
+| [docs/bao-cao.docx](./docs/bao-cao.docx) | Báo cáo bài tập lớn (.docx) |
+| [docs/y-tuong.docx](./docs/y-tuong.docx) | Tài liệu mô tả ý tưởng |
+| [docs/slides.docx](./docs/slides.docx) | Nội dung slide trình bày |
+| [DEPLOY.md](./DEPLOY.md) | Hướng dẫn triển khai |
