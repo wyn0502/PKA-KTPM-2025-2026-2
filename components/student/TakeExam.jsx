@@ -18,7 +18,7 @@ function shuffleArray(arr) {
     return shuffled;
 }
 
-export default function TakeExam({ examId, onFinish }) {
+export default function TakeExam({ examId, onFinish, previewMode = false }) {
     const { user } = useAuth();
     const [exam, setExam] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -49,7 +49,9 @@ export default function TakeExam({ examId, onFinish }) {
             }
             setQuestions(qs);
             // Register active session for monitoring
-            await api.startExamSession(examId, user.id);
+            if (!previewMode) {
+                await api.registerSession({exam_id: examId, user_id: user.id, total_questions: qs.length});
+            }
         };
         load();
     }, [examId, user]);
@@ -57,7 +59,9 @@ export default function TakeExam({ examId, onFinish }) {
     // Log cheating event helper
     const logCheat = useCallback(async (type, detail) => {
         if (!user || isSubmitted) return;
-        await api.addCheatingLog(examId, user.id, type, detail);
+        if (!previewMode) {
+            await api.logCheating({exam_id: examId, user_id: user.id, type, detail});
+        }
         cheatingCountRef.current += 1;
         setCheatingWarnings(cheatingCountRef.current);
         setCheatingAlert(detail);
@@ -185,13 +189,37 @@ export default function TakeExam({ examId, onFinish }) {
         if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
         }
-        const submitResult = await api.submitExam(examId, user.id, answers);
+        if (previewMode) {
+            // Calculate result locally without saving
+            let correctCount = 0;
+            const answersDetail = [];
+            questions.forEach(q => {
+                const userAnswer = answers[q.id];
+                const correctAnswer = q.answers.find(a => a.is_correct);
+                const isCorrect = userAnswer === correctAnswer?.id;
+                if (isCorrect) correctCount++;
+                answersDetail.push({
+                    question_id: q.id,
+                    question_content: q.content,
+                    user_answer_id: userAnswer || null,
+                    correct_answer_id: correctAnswer?.id,
+                    is_correct: isCorrect,
+                    answers: q.answers,
+                });
+            });
+            const totalQuestions = questions.length;
+            const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) / 10 : 0;
+            setResult({ score, total_questions: totalQuestions, correct_count: correctCount, answers_detail: answersDetail });
+            setIsSubmitted(true);
+            return;
+        }
+        const submitResult = await api.submitExam({exam_id: examId, user_id: user.id, answers: answers});
         if (submitResult.success) {
-            await api.endExamSession(examId, user.id);
+            await api.removeSession(examId, user.id);
             setResult(submitResult.result);
             setIsSubmitted(true);
         }
-    }, [answers, examId, user]);
+    }, [answers, examId, user, previewMode, questions]);
 
     // Auto-submit when time runs out
     useEffect(() => {
@@ -215,7 +243,9 @@ export default function TakeExam({ examId, onFinish }) {
         if (isSubmitted) return;
         setAnswers(prev => {
             const next = { ...prev, [questionId]: answerId };
-            api.updateExamSession(examId, user.id, Object.keys(next).length, questions.length);
+            if (!previewMode) {
+                api.updateSession(examId, user.id, {answered_count: Object.keys(next).length, total_questions: questions.length});
+            }
             return next;
         });
     };
@@ -342,6 +372,11 @@ export default function TakeExam({ examId, onFinish }) {
 
     return (
         <div className="exam-container" style={{ padding: '16px' }}>
+            {previewMode && (
+                <div style={{background:'var(--warning)', color:'#000', padding:'8px 16px', textAlign:'center', fontSize:'0.85rem', fontWeight:600}}>
+                    👁 Chế độ xem trước (Giảng viên) — Kết quả sẽ không được lưu
+                </div>
+            )}
             {/* Cheating alert toast */}
             {cheatingAlert && (
                 <div className="cheating-alert">

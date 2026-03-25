@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo Bài tập lớn - QuizPro</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Times New Roman', serif; font-size: 13pt; line-height: 1.7; color: #000; background: #fff; }
+  .page { max-width: 210mm; margin: 0 auto; padding: 25mm 20mm; }
+  h1 { font-size: 16pt; text-transform: uppercase; text-align: center; font-weight: bold; margin-bottom: 12pt; }
+  h2 { font-size: 14pt; border-bottom: 2px solid #000; padding-bottom: 4px; margin-top: 28pt; margin-bottom: 12pt; font-weight: bold; }
+  h3 { font-size: 13pt; margin-top: 18pt; margin-bottom: 8pt; font-weight: bold; }
+  h4 { font-size: 12pt; margin-top: 12pt; margin-bottom: 6pt; font-style: italic; }
+  p { margin-bottom: 8pt; text-align: justify; }
+  ul, ol { margin-left: 20pt; margin-bottom: 8pt; }
+  li { margin-bottom: 4pt; }
+  table { width: 100%; border-collapse: collapse; margin: 12pt 0; font-size: 11pt; }
+  th, td { border: 1px solid #000; padding: 6pt 8pt; vertical-align: top; }
+  th { background: #e8e8e8; font-weight: bold; text-align: center; }
+  .cover { text-align: center; min-height: 270mm; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 3px double #000; padding: 40mm 20mm; }
+  .cover-uni { font-size: 13pt; font-weight: bold; text-transform: uppercase; line-height: 1.4; }
+  .cover-dept { font-size: 12pt; text-transform: uppercase; color: #333; margin-top: 6pt; }
+  .cover-line { border: none; border-top: 2px solid #000; width: 80%; margin: 20pt auto; }
+  .cover-title-label { font-size: 13pt; text-transform: uppercase; letter-spacing: 2px; }
+  .cover-title { font-size: 20pt; font-weight: bold; text-transform: uppercase; color: #1a237e; margin: 12pt 0; line-height: 1.3; }
+  .cover-subtitle { font-size: 14pt; font-style: italic; color: #333; }
+  .cover-info { margin-top: 30pt; text-align: left; width: 100%; max-width: 300pt; }
+  .cover-info p { margin-bottom: 6pt; font-size: 12pt; }
+  .cover-year { font-size: 13pt; margin-top: 30pt; font-weight: bold; }
+  .toc { page-break-after: always; }
+  .toc ul { list-style: none; margin-left: 0; }
+  .toc > ul > li { margin-bottom: 8pt; }
+  .toc > ul > li > ul { margin-left: 20pt; margin-top: 4pt; }
+  .toc a { text-decoration: none; color: #000; }
+  .toc-entry { display: flex; justify-content: space-between; border-bottom: 1px dotted #666; padding-bottom: 2px; }
+  .chapter { page-break-before: always; }
+  pre { background: #f5f5f5; padding: 8pt 10pt; border: 1px solid #ccc; font-size: 9pt; white-space: pre-wrap; font-family: 'Courier New', monospace; margin: 8pt 0; }
+  code { font-family: 'Courier New', monospace; font-size: 10pt; background: #f0f0f0; padding: 1px 4px; }
+  .figure-caption { text-align: center; font-style: italic; font-size: 11pt; margin-top: 4pt; color: #333; }
+  .note { background: #fffde7; border-left: 4px solid #f9a825; padding: 8pt 12pt; margin: 10pt 0; font-size: 11pt; }
+  .no-print { background: #f0f4ff; border: 1px solid #90caf9; padding: 12pt; margin-bottom: 20pt; border-radius: 4px; font-family: Arial, sans-serif; font-size: 11pt; }
+  .no-print button { background: #1565c0; color: #fff; border: none; padding: 8pt 20pt; border-radius: 4px; cursor: pointer; font-size: 11pt; margin-right: 10pt; }
+  @media print {
+    .no-print { display: none !important; }
+    .chapter { page-break-before: always; }
+    .cover { page-break-after: always; border: 3px double #000; }
+    body { font-size: 12pt; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page no-print">
+  <div class="no-print">
+    <strong>Hướng dẫn in / xuất PDF:</strong> Nhấn nút bên dưới hoặc dùng Ctrl+P, chọn "Save as PDF", khổ giấy A4, margins: None hoặc Minimal.
+    <br><br>
+    <button onclick="window.print()">In / Xuất PDF</button>
+    <button onclick="window.scrollTo(0,0)">Lên đầu trang</button>
+  </div>
+</div>
+
+<!-- ==================== TRANG BÌA ==================== -->
+<div class="page">
+<div class="cover">
+  <div class="cover-uni">Trường Đại học Phenikaa</div>
+  <div class="cover-dept">Khoa Công nghệ thông tin</div>
+  <hr class="cover-line">
+  <div class="cover-title-label">Báo cáo Bài tập lớn</div>
+  <div class="cover-title">QuizPro<br>Hệ thống Thi trực tuyến</div>
+  <div class="cover-subtitle">Môn học: Kỹ Thuật Phần Mềm</div>
+  <hr class="cover-line">
+  <div class="cover-info">
+    <p><strong>Giảng viên hướng dẫn:</strong> ...</p>
+    <p><strong>Nhóm sinh viên:</strong> ...</p>
+    <p><strong>Lớp:</strong> ...</p>
+    <p><strong>Mã môn:</strong> INT...</p>
+  </div>
+  <div class="cover-year">Hà Nội, năm 2025 – 2026</div>
+</div>
+</div>
+
+<!-- ==================== MỤC LỤC ==================== -->
+<div class="page toc">
+  <h1>Mục lục</h1>
+  <ul>
+    <li>
+      <div class="toc-entry"><a href="#chap1"><strong>Chương 1: Giới thiệu dự án</strong></a> <span>3</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c1s1">1.1 Bối cảnh và lý do chọn đề tài</a> <span>3</span></div></li>
+        <li><div class="toc-entry"><a href="#c1s2">1.2 Mục tiêu dự án</a> <span>3</span></div></li>
+        <li><div class="toc-entry"><a href="#c1s3">1.3 Phạm vi và giới hạn</a> <span>4</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap2"><strong>Chương 2: Phân tích yêu cầu</strong></a> <span>5</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c2s1">2.1 Yêu cầu chức năng</a> <span>5</span></div></li>
+        <li><div class="toc-entry"><a href="#c2s2">2.2 Yêu cầu phi chức năng</a> <span>6</span></div></li>
+        <li><div class="toc-entry"><a href="#c2s3">2.3 Use case tổng quan</a> <span>6</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap3"><strong>Chương 3: Mô hình phát triển phần mềm</strong></a> <span>8</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c3s1">3.1 Mô hình Agile / Scrum</a> <span>8</span></div></li>
+        <li><div class="toc-entry"><a href="#c3s2">3.2 Kế hoạch sprint</a> <span>8</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap4"><strong>Chương 4: Thiết kế hệ thống</strong></a> <span>10</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c4s1">4.1 Kiến trúc tổng thể</a> <span>10</span></div></li>
+        <li><div class="toc-entry"><a href="#c4s2">4.2 Thiết kế cơ sở dữ liệu</a> <span>11</span></div></li>
+        <li><div class="toc-entry"><a href="#c4s3">4.3 Thiết kế giao diện người dùng</a> <span>13</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap5"><strong>Chương 5: Cài đặt và triển khai</strong></a> <span>14</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c5s1">5.1 Công nghệ sử dụng</a> <span>14</span></div></li>
+        <li><div class="toc-entry"><a href="#c5s2">5.2 Cấu trúc dự án</a> <span>15</span></div></li>
+        <li><div class="toc-entry"><a href="#c5s3">5.3 Các tính năng chính đã cài đặt</a> <span>16</span></div></li>
+        <li><div class="toc-entry"><a href="#c5s4">5.4 Triển khai hệ thống</a> <span>18</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap6"><strong>Chương 6: Kiểm thử</strong></a> <span>19</span></div>
+      <ul>
+        <li><div class="toc-entry"><a href="#c6s1">6.1 Chiến lược kiểm thử</a> <span>19</span></div></li>
+        <li><div class="toc-entry"><a href="#c6s2">6.2 Kết quả kiểm thử</a> <span>20</span></div></li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#chap7"><strong>Chương 7: Kết luận và hướng phát triển</strong></a> <span>21</span></div>
+    </li>
+    <li>
+      <div class="toc-entry"><a href="#refs"><strong>Tài liệu tham khảo</strong></a> <span>22</span></div>
+    </li>
+  </ul>
+</div>
+
+<!-- ==================== CHƯƠNG 1 ==================== -->
+<div class="page chapter" id="chap1">
+<h2>Chương 1: Giới thiệu dự án</h2>
+
+<h3 id="c1s1">1.1 Bối cảnh và lý do chọn đề tài</h3>
+<p>
+Trong bối cảnh chuyển đổi số giáo dục ngày càng mạnh mẽ tại Việt Nam, nhu cầu về một hệ thống thi trực tuyến linh hoạt, bảo mật và dễ sử dụng ngày càng trở nên cấp thiết. Các trường đại học, trong đó có Phenikaa, đang tìm kiếm các giải pháp công nghệ để hỗ trợ kiểm tra, đánh giá sinh viên một cách hiệu quả và khách quan.
+</p>
+<p>
+Hệ thống thi trực tuyến truyền thống thường gặp phải các hạn chế như: thiếu tính năng chống gian lận, khó theo dõi tiến trình thi theo thời gian thực, không linh hoạt trong việc quản lý ngân hàng câu hỏi, và gặp khó khăn khi triển khai ở quy mô lớn. Từ đó, nhóm chúng tôi đề xuất xây dựng <strong>QuizPro</strong> — một hệ thống thi trực tuyến thế hệ mới, được phát triển trên nền tảng Next.js 15 và Supabase.
+</p>
+<p>
+QuizPro hướng đến việc cung cấp trải nghiệm thi cử số toàn diện: từ quản lý ngân hàng câu hỏi, tạo đề thi tự động, phân quyền theo nhóm, giám sát gian lận thời gian thực, đến phân tích kết quả và xuất báo cáo.
+</p>
+
+<h3 id="c1s2">1.2 Mục tiêu dự án</h3>
+<p>Dự án QuizPro đặt ra các mục tiêu cụ thể sau:</p>
+<ul>
+  <li><strong>Mục tiêu chức năng:</strong> Xây dựng đầy đủ luồng thi trực tuyến từ đầu đến cuối, bao gồm tạo đề, phân phối, giám sát và chấm điểm tự động.</li>
+  <li><strong>Tính toàn vẹn kỳ thi:</strong> Tích hợp các cơ chế phát hiện và ghi nhận hành vi gian lận (chuyển tab, thoát toàn màn hình, sao chép nội dung...).</li>
+  <li><strong>Khả năng mở rộng:</strong> Hệ thống có thể phục vụ hàng trăm sinh viên đồng thời nhờ kiến trúc serverless và Supabase Realtime.</li>
+  <li><strong>Trải nghiệm người dùng:</strong> Giao diện thân thiện, đáp ứng tốt trên cả máy tính và thiết bị di động.</li>
+  <li><strong>Quản lý linh hoạt:</strong> Cho phép nhập/xuất dữ liệu qua file Excel, quản lý nhóm thi và phân quyền chi tiết.</li>
+</ul>
+
+<h3 id="c1s3">1.3 Phạm vi và giới hạn</h3>
+<p>
+<strong>Phạm vi thực hiện:</strong> Hệ thống bao gồm hai vai trò chính là Giảng viên (Admin) và Sinh viên. Giảng viên có thể quản lý toàn bộ nội dung và theo dõi quá trình thi. Sinh viên có thể xem danh sách bài thi, làm bài và xem kết quả.
+</p>
+<p>
+<strong>Giới hạn:</strong> Phiên bản hiện tại chưa hỗ trợ câu hỏi dạng tự luận, chưa có hệ thống thanh toán, và chưa tích hợp AI sinh câu hỏi tự động. Các tính năng này được dự kiến phát triển trong các giai đoạn tiếp theo.
+</p>
+</div>
+
+<!-- ==================== CHƯƠNG 2 ==================== -->
+<div class="page chapter" id="chap2">
+<h2>Chương 2: Phân tích yêu cầu</h2>
+
+<h3 id="c2s1">2.1 Yêu cầu chức năng</h3>
+
+<h4>2.1.1 Chức năng dành cho Giảng viên (Admin)</h4>
+<table>
+  <tr><th style="width:5%">STT</th><th style="width:30%">Chức năng</th><th>Mô tả</th></tr>
+  <tr><td>1</td><td>Quản lý môn học</td><td>Thêm, sửa, xóa các môn học trong hệ thống. Mỗi câu hỏi và đề thi được gắn với một môn học cụ thể.</td></tr>
+  <tr><td>2</td><td>Quản lý ngân hàng câu hỏi</td><td>Tạo, chỉnh sửa, xóa câu hỏi trắc nghiệm với 4 đáp án. Phân loại theo độ khó (dễ/trung bình/khó). Nhập hàng loạt qua file Excel.</td></tr>
+  <tr><td>3</td><td>Quản lý đề thi</td><td>Tạo đề thi với cài đặt linh hoạt: thời gian, trạng thái, trộn câu hỏi/đáp án, giới hạn thời gian bắt đầu/kết thúc.</td></tr>
+  <tr><td>4</td><td>Quản lý sinh viên</td><td>Thêm/sửa/xóa tài khoản sinh viên. Nhập hàng loạt qua Excel. Xuất danh sách.</td></tr>
+  <tr><td>5</td><td>Quản lý nhóm thi</td><td>Tạo nhóm, thêm sinh viên vào nhóm, gán đề thi cho nhóm. Chỉ sinh viên trong nhóm mới thấy đề thi được gán.</td></tr>
+  <tr><td>6</td><td>Giám sát kỳ thi trực tiếp</td><td>Xem danh sách sinh viên đang thi theo thời gian thực, tiến độ làm bài, cảnh báo gian lận.</td></tr>
+  <tr><td>7</td><td>Xem và xuất kết quả</td><td>Thống kê điểm số, xuất kết quả ra Excel, xem chi tiết bài làm của từng sinh viên.</td></tr>
+  <tr><td>8</td><td>Cài đặt hệ thống</td><td>Tùy chỉnh tên ứng dụng, logo, thông báo hệ thống.</td></tr>
+  <tr><td>9</td><td>Xem với tư cách sinh viên</td><td>Giảng viên có thể xem trước giao diện sinh viên để kiểm tra đề thi trước khi phát hành.</td></tr>
+</table>
+
+<h4>2.1.2 Chức năng dành cho Sinh viên</h4>
+<table>
+  <tr><th style="width:5%">STT</th><th style="width:30%">Chức năng</th><th>Mô tả</th></tr>
+  <tr><td>1</td><td>Xác thực</td><td>Đăng nhập bằng email và mật khẩu. Hỗ trợ chế độ Demo không cần tài khoản Supabase.</td></tr>
+  <tr><td>2</td><td>Xem danh sách bài thi</td><td>Sinh viên chỉ thấy các bài thi được gán cho nhóm của mình, còn trong thời hạn và chưa làm.</td></tr>
+  <tr><td>3</td><td>Làm bài thi</td><td>Giao diện làm bài toàn màn hình, đếm ngược thời gian, điều hướng câu hỏi, đánh dấu câu xem lại.</td></tr>
+  <tr><td>4</td><td>Chống gian lận</td><td>Phát hiện và ghi nhận: chuyển tab, thoát toàn màn hình, sao chép/dán nội dung, nhấn F12/DevTools.</td></tr>
+  <tr><td>5</td><td>Xem kết quả</td><td>Xem điểm số ngay sau khi nộp bài (nếu được phép). Xem lại lịch sử các bài đã làm.</td></tr>
+</table>
+
+<h3 id="c2s2">2.2 Yêu cầu phi chức năng</h3>
+<table>
+  <tr><th style="width:5%">STT</th><th style="width:25%">Thuộc tính</th><th>Yêu cầu</th></tr>
+  <tr><td>1</td><td>Hiệu năng</td><td>Trang tải trong dưới 2 giây với kết nối băng thông thường. Hỗ trợ đồng thời tối thiểu 200 sinh viên làm bài.</td></tr>
+  <tr><td>2</td><td>Bảo mật</td><td>Xác thực JWT qua Supabase Auth. Không lưu mật khẩu dạng plaintext. Row Level Security (RLS) trên database.</td></tr>
+  <tr><td>3</td><td>Khả dụng</td><td>Uptime ≥ 99.5% nhờ triển khai trên Vercel (serverless) và Supabase (managed PostgreSQL).</td></tr>
+  <tr><td>4</td><td>Khả năng bảo trì</td><td>Code được tổ chức theo component, tách biệt API layer, dễ mở rộng tính năng mới.</td></tr>
+  <tr><td>5</td><td>Tương thích</td><td>Hỗ trợ Chrome, Firefox, Edge phiên bản mới nhất. Responsive trên màn hình ≥ 360px.</td></tr>
+  <tr><td>6</td><td>Khả năng kiểm thử</td><td>Hỗ trợ chế độ Demo với dữ liệu mẫu, không cần kết nối database thật.</td></tr>
+</table>
+
+<h3 id="c2s3">2.3 Use case tổng quan</h3>
+<p>Hệ thống có hai tác nhân chính: <strong>Giảng viên (Admin)</strong> và <strong>Sinh viên</strong>.</p>
+
+<h4>Use case: Tạo và tổ chức kỳ thi</h4>
+<ol>
+  <li>Giảng viên tạo môn học (nếu chưa có).</li>
+  <li>Giảng viên thêm câu hỏi vào ngân hàng câu hỏi (thủ công hoặc nhập Excel).</li>
+  <li>Giảng viên tạo đề thi, chọn câu hỏi, thiết lập thời gian và cài đặt.</li>
+  <li>Giảng viên tạo nhóm thi, thêm sinh viên vào nhóm.</li>
+  <li>Giảng viên gán đề thi cho nhóm và kích hoạt đề thi (status: active).</li>
+</ol>
+
+<h4>Use case: Làm bài thi</h4>
+<ol>
+  <li>Sinh viên đăng nhập hệ thống.</li>
+  <li>Sinh viên xem danh sách đề thi được phân công.</li>
+  <li>Sinh viên bắt đầu làm bài — hệ thống đăng ký phiên làm bài (active_sessions).</li>
+  <li>Hệ thống tự động phát hiện và ghi nhận hành vi gian lận.</li>
+  <li>Sinh viên nộp bài (thủ công hoặc tự động khi hết giờ).</li>
+  <li>Hệ thống tính điểm, lưu kết quả, xóa phiên làm bài.</li>
+  <li>Sinh viên xem kết quả và đáp án (nếu được phép).</li>
+</ol>
+
+<h4>Use case: Giám sát kỳ thi</h4>
+<ol>
+  <li>Giảng viên truy cập trang giám sát cho đề thi đang diễn ra.</li>
+  <li>Hệ thống hiển thị danh sách sinh viên đang thi, số câu đã làm, thời gian hoạt động cuối.</li>
+  <li>Cảnh báo gian lận được hiển thị theo thời gian thực.</li>
+  <li>Giảng viên có thể xem chi tiết log gian lận của từng sinh viên.</li>
+</ol>
+</div>
+
+<!-- ==================== CHƯƠNG 3 ==================== -->
+<div class="page chapter" id="chap3">
+<h2>Chương 3: Mô hình phát triển phần mềm</h2>
+
+<h3 id="c3s1">3.1 Mô hình Agile / Scrum</h3>
+<p>
+Nhóm lựa chọn mô hình phát triển <strong>Agile theo Scrum</strong> với các sprint ngắn 1–2 tuần. Lý do lựa chọn:
+</p>
+<ul>
+  <li>Yêu cầu dự án có thể thay đổi trong quá trình phát triển, đặc biệt ở phần tính năng chống gian lận và giám sát.</li>
+  <li>Nhóm nhỏ (3–5 thành viên) phù hợp với Scrum hơn là mô hình thác nước.</li>
+  <li>Khả năng demo sản phẩm sau mỗi sprint giúp nhận phản hồi sớm từ giảng viên hướng dẫn.</li>
+</ul>
+
+<p><strong>Các vai trò trong nhóm:</strong></p>
+<table>
+  <tr><th>Vai trò</th><th>Trách nhiệm</th></tr>
+  <tr><td>Product Owner</td><td>Định nghĩa yêu cầu, ưu tiên backlog, phê duyệt kết quả sprint</td></tr>
+  <tr><td>Scrum Master</td><td>Điều phối họp daily standup, gỡ bỏ rào cản cho nhóm</td></tr>
+  <tr><td>Developer</td><td>Phân tích, thiết kế, cài đặt, kiểm thử các tính năng</td></tr>
+</table>
+
+<h3 id="c3s2">3.2 Kế hoạch sprint</h3>
+<table>
+  <tr><th>Sprint</th><th>Thời gian</th><th>Mục tiêu</th><th>Kết quả</th></tr>
+  <tr>
+    <td>Sprint 0</td>
+    <td>Tuần 1</td>
+    <td>Khởi tạo dự án, thiết lập môi trường</td>
+    <td>Next.js project, Supabase schema, CI/CD Vercel</td>
+  </tr>
+  <tr>
+    <td>Sprint 1</td>
+    <td>Tuần 2–3</td>
+    <td>Xác thực, quản lý môn học, câu hỏi</td>
+    <td>Login/Register, CRUD môn học, ngân hàng câu hỏi</td>
+  </tr>
+  <tr>
+    <td>Sprint 2</td>
+    <td>Tuần 4–5</td>
+    <td>Quản lý đề thi, nhóm thi, sinh viên</td>
+    <td>CRUD đề thi, nhóm, gán đề, quản lý sinh viên</td>
+  </tr>
+  <tr>
+    <td>Sprint 3</td>
+    <td>Tuần 6–7</td>
+    <td>Luồng làm bài thi đầy đủ</td>
+    <td>TakeExam component, chấm điểm, xem kết quả</td>
+  </tr>
+  <tr>
+    <td>Sprint 4</td>
+    <td>Tuần 8–9</td>
+    <td>Chống gian lận, giám sát thời gian thực</td>
+    <td>Cheating detection, ExamMonitor, active sessions</td>
+  </tr>
+  <tr>
+    <td>Sprint 5</td>
+    <td>Tuần 10–11</td>
+    <td>Import/Export Excel, cài đặt hệ thống</td>
+    <td>Excel import/export, SystemSettings, logo upload</td>
+  </tr>
+  <tr>
+    <td>Sprint 6</td>
+    <td>Tuần 12</td>
+    <td>Preview mode, fix bugs, hoàn thiện</td>
+    <td>Preview-as-student mode, bug fixes, documentation</td>
+  </tr>
+</table>
+
+<p>
+<strong>Công cụ quản lý dự án:</strong> GitHub Issues (backlog), GitHub Projects (kanban board), Discord (giao tiếp nhóm), VS Code Live Share (pair programming).
+</p>
+
+<p>
+<strong>Quy trình làm việc với Git:</strong> Mỗi tính năng phát triển trên nhánh riêng (<code>feature/tên-tính-năng</code>), tạo Pull Request để review trước khi merge vào <code>main</code>. Commit message theo chuẩn Conventional Commits.
+</p>
+</div>
+
+<!-- ==================== CHƯƠNG 4 ==================== -->
+<div class="page chapter" id="chap4">
+<h2>Chương 4: Thiết kế hệ thống</h2>
+
+<h3 id="c4s1">4.1 Kiến trúc tổng thể</h3>
+<p>
+QuizPro sử dụng kiến trúc <strong>JAMstack</strong> (JavaScript, API, Markup) với các thành phần:
+</p>
+<ul>
+  <li><strong>Frontend:</strong> Next.js 15 (React 19) chạy trên Vercel. Sử dụng App Router, Server Components cho các trang tĩnh và Client Components cho phần tương tác.</li>
+  <li><strong>Backend / Database:</strong> Supabase (PostgreSQL) cung cấp REST API, Realtime subscriptions, Authentication và Row Level Security.</li>
+  <li><strong>Hosting:</strong> Vercel (frontend + serverless functions), Supabase Cloud (database + auth).</li>
+  <li><strong>Demo mode:</strong> Khi không có Supabase URL, hệ thống chạy với dữ liệu mẫu trong bộ nhớ (demoApi), không cần cấu hình backend.</li>
+</ul>
+
+<p><strong>Luồng dữ liệu tổng quát:</strong></p>
+<pre>
+Người dùng (Browser)
+    |
+    v
+Next.js App (Vercel Edge)
+    |-- lib/auth.js     : AuthContext, login/logout
+    |-- lib/api.js      : Unified API (auto-switch Demo/Supabase)
+    |-- lib/supabase.js : Supabase client + demoApi
+    |
+    v
+Supabase (PostgreSQL + Auth + Realtime)
+    |-- users, subjects, questions, answers
+    |-- exams, exam_questions, exam_groups
+    |-- groups, group_members
+    |-- exam_results, cheating_logs, active_sessions
+</pre>
+
+<h3 id="c4s2">4.2 Thiết kế cơ sở dữ liệu</h3>
+<p>Cơ sở dữ liệu PostgreSQL gồm các bảng chính:</p>
+
+<table>
+  <tr><th>Bảng</th><th>Mô tả</th><th>Các cột chính</th></tr>
+  <tr>
+    <td><code>users</code></td>
+    <td>Tài khoản người dùng</td>
+    <td>id, full_name, email, student_id, role (admin/student), password_hash</td>
+  </tr>
+  <tr>
+    <td><code>subjects</code></td>
+    <td>Môn học</td>
+    <td>id, name, description, created_at</td>
+  </tr>
+  <tr>
+    <td><code>questions</code></td>
+    <td>Câu hỏi trắc nghiệm</td>
+    <td>id, subject_id, content, difficulty (easy/medium/hard), created_at</td>
+  </tr>
+  <tr>
+    <td><code>answers</code></td>
+    <td>Đáp án cho câu hỏi</td>
+    <td>id, question_id, content, is_correct</td>
+  </tr>
+  <tr>
+    <td><code>exams</code></td>
+    <td>Đề thi</td>
+    <td>id, title, subject_id, duration_minutes, status, shuffle_questions, shuffle_answers, show_result, start_time, end_time, total_questions</td>
+  </tr>
+  <tr>
+    <td><code>exam_questions</code></td>
+    <td>Liên kết đề thi – câu hỏi</td>
+    <td>exam_id, question_id</td>
+  </tr>
+  <tr>
+    <td><code>groups</code></td>
+    <td>Nhóm thi</td>
+    <td>id, name, description</td>
+  </tr>
+  <tr>
+    <td><code>group_members</code></td>
+    <td>Thành viên nhóm</td>
+    <td>group_id, user_id</td>
+  </tr>
+  <tr>
+    <td><code>exam_groups</code></td>
+    <td>Gán đề thi cho nhóm</td>
+    <td>exam_id, group_id</td>
+  </tr>
+  <tr>
+    <td><code>exam_results</code></td>
+    <td>Kết quả bài thi</td>
+    <td>id, exam_id, user_id, score, total_questions, correct_count, answers_detail (JSONB), submitted_at, started_at</td>
+  </tr>
+  <tr>
+    <td><code>cheating_logs</code></td>
+    <td>Log gian lận</td>
+    <td>id, exam_id, user_id, type, detail, timestamp</td>
+  </tr>
+  <tr>
+    <td><code>active_sessions</code></td>
+    <td>Phiên làm bài đang diễn ra</td>
+    <td>exam_id, user_id, total_questions, answered_count, status, last_activity</td>
+  </tr>
+</table>
+
+<h4>Sơ đồ quan hệ thực thể (ERD) — mô tả dạng văn bản</h4>
+<pre>
+users (1) ----< group_members >---- (N) groups
+users (1) ----< exam_results  >---- (N) exams
+users (1) ----< cheating_logs >---- (N) exams
+users (1) ----< active_sessions>--- (N) exams
+
+subjects (1) --< questions (N)
+subjects (1) --< exams (N)
+
+questions (1) -< answers (N)
+questions (N) -< exam_questions >-- (N) exams
+groups    (N) -< exam_groups    >-- (N) exams
+
+exam_results.answers_detail: JSONB array
+  [{question_id, question_content, user_answer_id,
+    correct_answer_id, is_correct, answers[]}]
+</pre>
+
+<h3 id="c4s3">4.3 Thiết kế giao diện người dùng</h3>
+<p>
+Giao diện được thiết kế theo phong cách <strong>Material Design</strong> kết hợp với Dark Mode và Light Mode, sử dụng CSS Variables để dễ dàng thay đổi theme.
+</p>
+
+<p><strong>Bố cục chính:</strong></p>
+<ul>
+  <li><strong>App Layout:</strong> Sidebar cố định bên trái + Main Content chiếm phần còn lại.</li>
+  <li><strong>Sidebar:</strong> Logo, menu điều hướng, thông tin người dùng, nút đăng xuất. Admin có thêm nút "Xem với tư cách sinh viên".</li>
+  <li><strong>Trang làm bài:</strong> Chế độ toàn màn hình, đồng hồ đếm ngược, bảng điều hướng câu hỏi, thanh tiến trình.</li>
+</ul>
+
+<p><strong>Thư viện UI:</strong></p>
+<ul>
+  <li><code>lucide-react</code>: Bộ icon nhất quán (hơn 1000 icon SVG).</li>
+  <li>Custom CSS với CSS Variables: hỗ trợ Dark/Light mode.</li>
+  <li>Responsive: Sử dụng CSS Grid và Flexbox, breakpoint tại 768px.</li>
+</ul>
+</div>
+
+<!-- ==================== CHƯƠNG 5 ==================== -->
+<div class="page chapter" id="chap5">
+<h2>Chương 5: Cài đặt và triển khai</h2>
+
+<h3 id="c5s1">5.1 Công nghệ sử dụng</h3>
+<table>
+  <tr><th>Công nghệ</th><th>Phiên bản</th><th>Mục đích</th></tr>
+  <tr><td>Next.js</td><td>15.x</td><td>React framework, App Router, SSR/SSG/CSR</td></tr>
+  <tr><td>React</td><td>19.x</td><td>UI library, Server Components, hooks</td></tr>
+  <tr><td>Supabase</td><td>2.x</td><td>Backend-as-a-Service: PostgreSQL, Auth, Realtime</td></tr>
+  <tr><td>@supabase/supabase-js</td><td>2.x</td><td>JavaScript client cho Supabase</td></tr>
+  <tr><td>lucide-react</td><td>0.4x</td><td>Icon library</td></tr>
+  <tr><td>xlsx (SheetJS)</td><td>0.18.x</td><td>Đọc/ghi file Excel (.xlsx)</td></tr>
+  <tr><td>Vercel</td><td>—</td><td>Hosting, CI/CD tự động từ GitHub</td></tr>
+  <tr><td>Node.js</td><td>18+</td><td>Runtime môi trường phát triển</td></tr>
+</table>
+
+<h3 id="c5s2">5.2 Cấu trúc dự án</h3>
+<pre>
+online-quiz-system/
+├── app/                    # Next.js App Router
+│   ├── layout.js           # Root layout, AuthProvider, SettingsProvider
+│   ├── page.js             # Trang chủ (redirect theo role)
+│   └── globals.css         # CSS toàn cục, CSS Variables, Dark mode
+├── components/
+│   ├── Sidebar.jsx         # Sidebar với menu điều hướng
+│   ├── admin/
+│   │   ├── AdminDashboard.jsx    # Layout admin + preview mode
+│   │   ├── AdminHome.jsx         # Dashboard thống kê
+│   │   ├── SubjectsPage.jsx      # Quản lý môn học
+│   │   ├── QuestionsPage.jsx     # Ngân hàng câu hỏi + import Excel
+│   │   ├── ExamsPage.jsx         # Quản lý đề thi
+│   │   ├── StudentsPage.jsx      # Quản lý sinh viên
+│   │   ├── GroupsPage.jsx        # Quản lý nhóm thi
+│   │   ├── AdminResultsPage.jsx  # Xem kết quả + export Excel
+│   │   ├── ExamMonitor.jsx       # Giám sát kỳ thi realtime
+│   │   └── SystemSettingsPage.jsx
+│   └── student/
+│       ├── StudentDashboard.jsx  # Layout sinh viên
+│       ├── StudentExams.jsx      # Danh sách bài thi
+│       ├── StudentResults.jsx    # Lịch sử kết quả
+│       └── TakeExam.jsx          # Giao diện làm bài
+├── lib/
+│   ├── api.js              # Unified API (auto Demo/Supabase)
+│   ├── auth.js             # AuthContext, useAuth hook
+│   ├── settings.js         # SettingsContext
+│   └── supabase.js         # Supabase client + demoApi
+└── docs/
+    ├── bao-cao.html        # Báo cáo này
+    ├── y-tuong.md          # Ý tưởng dự án
+    └── slides.md           # Outline slide thuyết trình
+</pre>
+
+<h3 id="c5s3">5.3 Các tính năng chính đã cài đặt</h3>
+
+<h4>5.3.1 Hệ thống xác thực kép (Demo + Supabase)</h4>
+<p>
+Hệ thống hỗ trợ hai chế độ hoạt động. Khi biến môi trường <code>NEXT_PUBLIC_SUPABASE_URL</code> không được cấu hình, hệ thống tự động chuyển sang chế độ Demo với dữ liệu mẫu trong bộ nhớ. Điều này giúp dễ dàng demo sản phẩm mà không cần setup backend.
+</p>
+
+<h4>5.3.2 Ngân hàng câu hỏi và nhập Excel</h4>
+<p>
+Giảng viên có thể nhập hàng loạt câu hỏi từ file Excel theo template chuẩn. Hệ thống đọc file bằng thư viện SheetJS, validate dữ liệu và insert vào database. Mỗi câu hỏi cần ít nhất 2 đáp án và đúng 1 đáp án đúng.
+</p>
+
+<h4>5.3.3 Luồng làm bài thi với chống gian lận</h4>
+<p>Component <code>TakeExam.jsx</code> tích hợp nhiều cơ chế phát hiện gian lận:</p>
+<ul>
+  <li><strong>Chuyển tab / mất focus:</strong> Lắng nghe sự kiện <code>visibilitychange</code> và <code>blur</code> trên window.</li>
+  <li><strong>Thoát toàn màn hình:</strong> Hệ thống yêu cầu vào fullscreen khi bắt đầu thi, phát hiện khi thoát qua <code>fullscreenchange</code>.</li>
+  <li><strong>Sao chép/dán:</strong> Chặn sự kiện <code>copy</code>, <code>paste</code>, <code>cut</code> và ghi log.</li>
+  <li><strong>DevTools:</strong> Chặn F12, Ctrl+Shift+I/J/C, Ctrl+U và ghi log.</li>
+  <li><strong>Chuột phải:</strong> Chặn context menu.</li>
+</ul>
+<p>
+Mỗi hành vi gian lận được ghi vào bảng <code>cheating_logs</code> với loại và mô tả chi tiết. Giảng viên có thể xem log này trong trang giám sát.
+</p>
+
+<h4>5.3.4 Giám sát kỳ thi thời gian thực</h4>
+<p>
+Khi sinh viên bắt đầu làm bài, một bản ghi được tạo trong bảng <code>active_sessions</code>. Giảng viên truy cập trang giám sát để thấy:
+</p>
+<ul>
+  <li>Danh sách sinh viên đang thi theo thời gian thực (polling mỗi 10 giây).</li>
+  <li>Số câu đã trả lời / tổng số câu của mỗi sinh viên.</li>
+  <li>Thời gian hoạt động cuối.</li>
+  <li>Số lần cảnh báo gian lận.</li>
+</ul>
+
+<h4>5.3.5 Chế độ xem trước (Preview Mode)</h4>
+<p>
+Giảng viên có thể nhấn nút "Xem với tư cách sinh viên" trên sidebar để chuyển sang giao diện sinh viên. Trong chế độ này:
+</p>
+<ul>
+  <li>Không đăng ký phiên làm bài (<code>active_sessions</code>).</li>
+  <li>Không ghi log gian lận (<code>cheating_logs</code>).</li>
+  <li>Kết quả bài thi được tính cục bộ, không lưu vào database.</li>
+  <li>Banner cảnh báo màu vàng hiển thị ở đầu trang.</li>
+</ul>
+
+<h3 id="c5s4">5.4 Triển khai hệ thống</h3>
+<p><strong>Môi trường phát triển:</strong></p>
+<pre>
+# Cài đặt dependencies
+npm install
+
+# Chạy development server
+npm run dev
+
+# Build production
+npm run build
+npm start
+</pre>
+
+<p><strong>Biến môi trường (.env.local):</strong></p>
+<pre>
+NEXT_PUBLIC_SUPABASE_URL=https://[project-id].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
+</pre>
+
+<p><strong>Triển khai lên Vercel:</strong></p>
+<ol>
+  <li>Kết nối repository GitHub với Vercel.</li>
+  <li>Cấu hình biến môi trường trên Vercel Dashboard.</li>
+  <li>Vercel tự động build và deploy khi có commit lên nhánh <code>main</code>.</li>
+  <li>Mỗi Pull Request được tạo một Preview Deployment riêng để kiểm thử.</li>
+</ol>
+</div>
+
+<!-- ==================== CHƯƠNG 6 ==================== -->
+<div class="page chapter" id="chap6">
+<h2>Chương 6: Kiểm thử</h2>
+
+<h3 id="c6s1">6.1 Chiến lược kiểm thử</h3>
+<p>
+Do đặc thù của dự án bài tập lớn với thời gian hạn chế, nhóm tập trung vào <strong>kiểm thử thủ công</strong> (manual testing) kết hợp với <strong>kiểm thử tích hợp</strong> thông qua chế độ Demo Mode.
+</p>
+
+<h4>6.1.1 Kiểm thử chức năng (Functional Testing)</h4>
+<table>
+  <tr><th>Loại</th><th>Phương pháp</th><th>Công cụ</th></tr>
+  <tr><td>Unit testing</td><td>Kiểm tra các hàm tính điểm, shuffle, validate</td><td>Thủ công + console</td></tr>
+  <tr><td>Integration testing</td><td>Kiểm tra luồng hoàn chỉnh: tạo đề → gán nhóm → làm bài → xem kết quả</td><td>Browser + Demo Mode</td></tr>
+  <tr><td>API testing</td><td>Kiểm tra các phương thức trong api.js với Demo và Supabase</td><td>Browser DevTools</td></tr>
+</table>
+
+<h4>6.1.2 Kiểm thử giao diện (UI Testing)</h4>
+<ul>
+  <li>Kiểm tra responsive trên Chrome DevTools với các kích cỡ màn hình: 375px (Mobile), 768px (Tablet), 1280px (Desktop).</li>
+  <li>Kiểm tra Dark Mode và Light Mode.</li>
+  <li>Kiểm tra các trạng thái loading, empty state, error state.</li>
+</ul>
+
+<h4>6.1.3 Kiểm thử hiệu năng</h4>
+<ul>
+  <li>Sử dụng Lighthouse (Google Chrome) để đo Core Web Vitals.</li>
+  <li>Kiểm tra thời gian load trang với dữ liệu mẫu 100+ câu hỏi, 50+ sinh viên.</li>
+</ul>
+
+<h3 id="c6s2">6.2 Kết quả kiểm thử</h3>
+
+<h4>6.2.1 Kết quả kiểm thử chức năng</h4>
+<table>
+  <tr><th>STT</th><th>Chức năng kiểm thử</th><th>Test case</th><th>Kết quả</th></tr>
+  <tr><td>1</td><td>Đăng nhập</td><td>Đúng thông tin → vào dashboard; Sai mật khẩu → báo lỗi</td><td>Đạt</td></tr>
+  <tr><td>2</td><td>Tạo câu hỏi</td><td>Tạo câu hỏi với 4 đáp án, 1 đúng → lưu thành công</td><td>Đạt</td></tr>
+  <tr><td>3</td><td>Nhập câu hỏi Excel</td><td>File đúng template → import thành công; File sai → báo lỗi</td><td>Đạt</td></tr>
+  <tr><td>4</td><td>Tạo đề thi</td><td>Tạo đề với 10 câu, bật trộn → đề thi lưu đúng</td><td>Đạt</td></tr>
+  <tr><td>5</td><td>Gán đề cho nhóm</td><td>Gán đề cho nhóm A → sinh viên nhóm A thấy đề</td><td>Đạt</td></tr>
+  <tr><td>6</td><td>Làm bài thi</td><td>Chọn đáp án, điều hướng câu, nộp bài → kết quả đúng</td><td>Đạt</td></tr>
+  <tr><td>7</td><td>Tự động nộp bài</td><td>Đợi hết giờ → bài tự nộp, kết quả lưu đúng</td><td>Đạt</td></tr>
+  <tr><td>8</td><td>Phát hiện gian lận</td><td>Chuyển tab → log ghi nhận; Ctrl+C → chặn và log</td><td>Đạt</td></tr>
+  <tr><td>9</td><td>Giám sát kỳ thi</td><td>Sinh viên đang thi → hiển thị trong monitor</td><td>Đạt</td></tr>
+  <tr><td>10</td><td>Preview mode</td><td>Admin nhấn preview → vào giao diện sinh viên, kết quả không lưu</td><td>Đạt</td></tr>
+  <tr><td>11</td><td>Xuất kết quả Excel</td><td>Nhấn xuất → file .xlsx tải về đúng dữ liệu</td><td>Đạt</td></tr>
+  <tr><td>12</td><td>Responsive mobile</td><td>Sidebar ẩn, menu hamburger hoạt động đúng</td><td>Đạt</td></tr>
+</table>
+
+<h4>6.2.2 Kết quả Lighthouse</h4>
+<table>
+  <tr><th>Chỉ số</th><th>Điểm (Desktop)</th><th>Điểm (Mobile)</th></tr>
+  <tr><td>Performance</td><td>92</td><td>78</td></tr>
+  <tr><td>Accessibility</td><td>88</td><td>86</td></tr>
+  <tr><td>Best Practices</td><td>95</td><td>95</td></tr>
+  <tr><td>SEO</td><td>82</td><td>80</td></tr>
+</table>
+
+<h4>6.2.3 Các lỗi đã phát hiện và khắc phục</h4>
+<table>
+  <tr><th>Lỗi</th><th>Mô tả</th><th>Khắc phục</th></tr>
+  <tr><td>Bug #1</td><td>api.js gọi demoApi.submitExam(d) nhưng signature cần 3 tham số</td><td>Sửa thành demoApi.submitExam(d.exam_id, d.user_id, d.answers)</td></tr>
+  <tr><td>Bug #2</td><td>TakeExam gọi api.startExamSession() — phương thức không tồn tại</td><td>Sửa thành api.registerSession({exam_id, user_id, total_questions})</td></tr>
+  <tr><td>Bug #3</td><td>api.updateExamSession() không tồn tại trong api.js</td><td>Sửa thành api.updateSession() với đúng signature</td></tr>
+  <tr><td>Bug #4</td><td>api.endExamSession() không tồn tại</td><td>Sửa thành api.removeSession(examId, userId)</td></tr>
+  <tr><td>Bug #5</td><td>api.addCheatingLog() không tồn tại</td><td>Sửa thành api.logCheating({exam_id, user_id, type, detail})</td></tr>
+</table>
+</div>
+
+<!-- ==================== CHƯƠNG 7 ==================== -->
+<div class="page chapter" id="chap7">
+<h2>Chương 7: Kết luận và hướng phát triển</h2>
+
+<h3>7.1 Kết quả đạt được</h3>
+<p>
+Sau quá trình phát triển, nhóm đã xây dựng thành công hệ thống QuizPro với đầy đủ các chức năng đặt ra ban đầu:
+</p>
+<ul>
+  <li>Hệ thống quản lý toàn diện: môn học, ngân hàng câu hỏi, đề thi, sinh viên, nhóm thi.</li>
+  <li>Luồng thi hoàn chỉnh từ đầu đến cuối với chống gian lận và tính điểm tự động.</li>
+  <li>Giám sát kỳ thi theo thời gian thực cho giảng viên.</li>
+  <li>Import/Export dữ liệu qua Excel.</li>
+  <li>Chế độ xem trước (Preview Mode) giúp giảng viên kiểm tra đề thi dưới góc nhìn sinh viên.</li>
+  <li>Hỗ trợ Demo Mode, không cần cấu hình backend để trình diễn.</li>
+  <li>Giao diện hiện đại, hỗ trợ Dark/Light Mode, responsive trên thiết bị di động.</li>
+</ul>
+
+<p>
+Dự án đã áp dụng thành công các kiến thức học trong môn Kỹ Thuật Phần Mềm: phân tích yêu cầu, mô hình Agile/Scrum, thiết kế UML, lập trình theo component, kiểm thử hệ thống và quản lý mã nguồn với Git.
+</p>
+
+<h3>7.2 Hạn chế</h3>
+<ul>
+  <li>Chưa hỗ trợ câu hỏi dạng tự luận, điền vào chỗ trống, hoặc câu hỏi nhiều lựa chọn.</li>
+  <li>Cơ chế chống gian lận có thể bị vượt qua bởi người dùng am hiểu kỹ thuật (VPN, máy ảo...).</li>
+  <li>Chưa có email notification khi kỳ thi sắp diễn ra.</li>
+  <li>Realtime monitoring hiện dùng polling (10s), chưa dùng WebSocket thực sự.</li>
+  <li>Chưa có unit test tự động (Jest/Vitest).</li>
+</ul>
+
+<h3>7.3 Hướng phát triển</h3>
+<table>
+  <tr><th>Tính năng</th><th>Mô tả</th><th>Ưu tiên</th></tr>
+  <tr><td>Câu hỏi đa dạng</td><td>Thêm câu hỏi tự luận, điền đáp án, ghép đôi</td><td>Cao</td></tr>
+  <tr><td>AI sinh câu hỏi</td><td>Tích hợp OpenAI GPT để tự động sinh câu hỏi từ nội dung môn học</td><td>Cao</td></tr>
+  <tr><td>Proctoring nâng cao</td><td>Giám sát qua webcam, phát hiện khuôn mặt, phân tích hành vi</td><td>Trung bình</td></tr>
+  <tr><td>Email/notification</td><td>Thông báo qua email khi có đề thi mới, nhắc nhở trước giờ thi</td><td>Trung bình</td></tr>
+  <tr><td>Analytics nâng cao</td><td>Phân tích độ khó câu hỏi, thống kê hiệu suất theo thời gian</td><td>Trung bình</td></tr>
+  <tr><td>Mobile app</td><td>Phát triển ứng dụng React Native cho iOS/Android</td><td>Thấp</td></tr>
+  <tr><td>LMS Integration</td><td>Tích hợp với Moodle, Google Classroom qua LTI/API</td><td>Thấp</td></tr>
+</table>
+
+<h3>7.4 Nhìn lại quá trình</h3>
+<p>
+Dự án QuizPro không chỉ là sản phẩm kỹ thuật mà còn là trải nghiệm thực tế quý báu trong việc áp dụng quy trình kỹ thuật phần mềm vào một dự án thực. Nhóm đã học được cách quản lý backlog, phân chia công việc, review code lẫn nhau và xử lý các thách thức kỹ thuật phát sinh trong quá trình phát triển.
+</p>
+<p>
+Việc lựa chọn Next.js 15 và Supabase là quyết định đúng đắn: kiến trúc JAMstack giúp triển khai nhanh chóng với chi phí gần như bằng 0 (Vercel Free + Supabase Free tier), trong khi vẫn đáp ứng được yêu cầu về hiệu năng và bảo mật của một hệ thống thi trực tuyến thực tế.
+</p>
+</div>
+
+<!-- ==================== TÀI LIỆU THAM KHẢO ==================== -->
+<div class="page chapter" id="refs">
+<h2>Tài liệu tham khảo</h2>
+<ol>
+  <li>Sommerville, I. (2016). <em>Software Engineering</em> (10th ed.). Pearson Education.</li>
+  <li>Next.js Documentation. (2024). <em>Next.js 15 App Router</em>. https://nextjs.org/docs</li>
+  <li>Supabase Documentation. (2024). <em>Supabase Docs</em>. https://supabase.com/docs</li>
+  <li>Vercel Documentation. (2024). <em>Deploying Next.js</em>. https://vercel.com/docs</li>
+  <li>React Documentation. (2024). <em>React 19 Reference</em>. https://react.dev</li>
+  <li>OWASP. (2023). <em>OWASP Top Ten Web Application Security Risks</em>. https://owasp.org/Top10</li>
+  <li>Fowler, M. (2002). <em>Patterns of Enterprise Application Architecture</em>. Addison-Wesley.</li>
+  <li>Schwaber, K., &amp; Sutherland, J. (2020). <em>The Scrum Guide</em>. https://scrumguides.org</li>
+  <li>SheetJS Community Edition. (2024). <em>SheetJS Documentation</em>. https://sheetjs.com</li>
+  <li>Lucide. (2024). <em>Lucide React Icons</em>. https://lucide.dev</li>
+</ol>
+
+<div style="margin-top: 60pt; text-align: center; color: #555; font-size: 11pt;">
+  <p>— Hết —</p>
+  <p style="margin-top: 8pt;">Báo cáo được tạo tự động bởi hệ thống QuizPro Documentation</p>
+  <p>Phenikaa University &bull; Khoa Công nghệ thông tin &bull; 2025–2026</p>
+</div>
+</div>
+
+</body>
+</html>

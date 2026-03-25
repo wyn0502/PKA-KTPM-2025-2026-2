@@ -6,10 +6,10 @@ import { useSettings } from '@/lib/settings';
 import {
     LayoutDashboard, BookOpen, FileQuestion, ClipboardList,
     Users, LogOut, Menu, X, GraduationCap, BarChart3,
-    FileText, History, Settings
+    FileText, History, Settings, Eye
 } from 'lucide-react';
 
-export default function Sidebar({ activePage, setActivePage, role }) {
+export default function Sidebar({ activePage, setActivePage, role, onPreviewMode }) {
     const { user, logout } = useAuth();
     const { settings } = useSettings();
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -125,6 +125,16 @@ export default function Sidebar({ activePage, setActivePage, role }) {
                             <div className="sidebar-user-name">{user?.full_name}</div>
                             <div className="sidebar-user-role">{user?.role === 'admin' ? 'Giảng viên' : 'Sinh viên'}</div>
                         </div>
+                        {role === 'admin' && onPreviewMode && (
+                            <button
+                                className="btn btn-ghost"
+                                onClick={onPreviewMode}
+                                title="Xem với tư cách sinh viên"
+                                style={{fontSize: '0.75rem', padding: '4px 8px', display:'flex', alignItems:'center', gap:4}}
+                            >
+                                <Eye size={16} />
+                            </button>
+                        )}
                         <button className="btn btn-ghost" onClick={logout} title="Đăng xuất">
                             <LogOut size={18} />
                         </button>
