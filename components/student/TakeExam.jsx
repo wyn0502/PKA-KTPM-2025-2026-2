@@ -33,6 +33,7 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
     const timerRef = useRef(null);
     const submitCalledRef = useRef(false);
     const cheatingCountRef = useRef(0);
+    const startedAtRef = useRef(new Date().toISOString());
 
     // Load exam and shuffle
     useEffect(() => {
@@ -85,7 +86,7 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
         if (isSubmitted || !exam) return;
         const handleCopy = (e) => { e.preventDefault(); logCheat('copy', 'Cố gắng sao chép nội dung'); };
         const handlePaste = (e) => { e.preventDefault(); logCheat('paste', 'Cố gắng dán nội dung'); };
-        const handleCut = (e) => { e.preventDefault(); logCheat('copy', 'Cố gắng cắt nội dung'); };
+        const handleCut = (e) => { e.preventDefault(); logCheat('cut', 'Cố gắng cắt nội dung'); };
         const handleContextMenu = (e) => { e.preventDefault(); logCheat('right_click', 'Nhấn chuột phải'); };
 
         document.addEventListener('copy', handleCopy);
@@ -213,10 +214,34 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
             setIsSubmitted(true);
             return;
         }
-        const submitResult = await api.submitExam({exam_id: examId, user_id: user.id, answers: answers});
+        // Calculate score (same logic as previewMode — api.submitExam needs full data)
+        let correctCount = 0;
+        const answersDetail = [];
+        questions.forEach(q => {
+            const userAnswer = answers[q.id];
+            const correctAnswer = q.answers.find(a => a.is_correct);
+            const isCorrect = userAnswer === correctAnswer?.id;
+            if (isCorrect) correctCount++;
+            answersDetail.push({
+                question_id: q.id,
+                question_content: q.content,
+                user_answer_id: userAnswer || null,
+                correct_answer_id: correctAnswer?.id,
+                is_correct: isCorrect,
+                answers: q.answers,
+            });
+        });
+        const totalQuestions = questions.length;
+        const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) / 10 : 0;
+
+        const submitResult = await api.submitExam({
+            exam_id: examId, user_id: user.id,
+            score, total_questions: totalQuestions, correct_count: correctCount,
+            answers_detail: answersDetail, started_at: startedAtRef.current,
+        });
         if (submitResult.success) {
             await api.removeSession(examId, user.id);
-            setResult(submitResult.result);
+            setResult(submitResult.result ?? { score, total_questions: totalQuestions, correct_count: correctCount, answers_detail: answersDetail });
             setIsSubmitted(true);
         }
     }, [answers, examId, user, previewMode, questions]);

@@ -76,7 +76,7 @@ export default function AdminHome() {
                 <div className="stat-card">
                     <div className="stat-icon primary"><Users size={24} /></div>
                     <div className="stat-info">
-                        <div className="stat-value">{stats.totalUsers}</div>
+                        <div className="stat-value">{stats.totalStudents}</div>
                         <div className="stat-label">Sinh viên</div>
                     </div>
                 </div>

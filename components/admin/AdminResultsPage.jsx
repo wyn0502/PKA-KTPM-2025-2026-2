@@ -30,9 +30,9 @@ export default function AdminResultsPage() {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
-            r.user?.full_name?.toLowerCase().includes(q) ||
-            r.exam?.title?.toLowerCase().includes(q) ||
-            r.user?.student_id?.toLowerCase().includes(q)
+            r.user_name?.toLowerCase().includes(q) ||
+            r.exam_title?.toLowerCase().includes(q) ||
+            r.student_id?.toLowerCase().includes(q)
         );
     });
 

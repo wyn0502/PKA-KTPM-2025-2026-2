@@ -79,17 +79,17 @@ export default function ExamsPage({ onMonitorExam }) {
             title: exam.title, subject_id: exam.subject_id, duration_minutes: exam.duration_minutes,
             shuffle_questions: exam.shuffle_questions, shuffle_answers: exam.shuffle_answers,
             show_result: exam.show_result, status: exam.status,
-            question_ids: exam.questions?.map(q => q.id) || [],
-            group_ids: exam.groups?.map(g => g.id) || [],
-            start_time: exam.start_time || '',
-            end_time: exam.end_time || '',
+            question_ids: exam.question_ids || [],
+            group_ids: exam.group_ids || [],
+            start_time: exam.start_time ? exam.start_time.slice(0, 16) : '',
+            end_time: exam.end_time ? exam.end_time.slice(0, 16) : '',
         });
         setShowModal(true);
     };
 
     const toggleStatus = async (exam) => {
         const newStatus = exam.status === 'active' ? 'closed' : 'active';
-        await api.updateExamStatus(exam.id, newStatus);
+        await api.updateExam(exam.id, { ...exam, status: newStatus });
         toast.info(newStatus === 'active' ? 'Đã mở đề thi' : 'Đã đóng đề thi');
         loadData();
     };
@@ -189,19 +189,19 @@ export default function ExamsPage({ onMonitorExam }) {
                                             )}
                                         </div>
                                         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                            {exam.subject && (
+                                            {exam.subject_name && (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    <AlertCircle size={14} /> {exam.subject.name}
+                                                    <AlertCircle size={14} /> {exam.subject_name}
                                                 </span>
                                             )}
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <Clock size={14} /> {exam.duration_minutes} phút
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <CheckSquare size={14} /> {exam.questions?.length || 0} câu
+                                                <CheckSquare size={14} /> {exam.question_ids?.length || 0} câu
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Users size={14} /> {exam.groups?.length > 0 ? exam.groups.map(g => g.name).join(', ') : 'Chưa gán nhóm'}
+                                                <Users size={14} /> {exam.group_ids?.length > 0 ? exam.group_ids.map(gId => groups.find(g => g.id === gId)?.name).filter(Boolean).join(', ') : 'Chưa gán nhóm'}
                                             </span>
                                             {exam.shuffle_questions && (
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
