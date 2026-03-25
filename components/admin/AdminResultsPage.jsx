@@ -1,22 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminResultsPage() {
     const [results, setResults] = useState([]);
+    const [exams, setExams] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterExam, setFilterExam] = useState('');
     const toast = useToast();
 
     useEffect(() => {
-        setResults(demoApi.getAllResults());
+        const load = async () => {
+            const [r, e] = await Promise.all([
+                api.getAllResults(),
+                api.getExams(),
+            ]);
+            setResults(r);
+            setExams(e);
+        };
+        load();
     }, []);
-
-    const exams = demoApi.getExams();
 
     const filtered = results.filter(r => {
         if (filterExam && r.exam_id !== filterExam) return false;
@@ -37,8 +44,8 @@ export default function AdminResultsPage() {
         ? Math.round((filtered.filter(r => r.score >= 5).length / filtered.length) * 100)
         : 0;
 
-    const handleExport = () => {
-        const data = demoApi.getExamResultsForExport(filterExam || null);
+    const handleExport = async () => {
+        const data = await api.getExamResultsForExport(filterExam || null);
         if (data.length === 0) {
             toast.warning('Không có dữ liệu để xuất');
             return;
@@ -132,7 +139,7 @@ export default function AdminResultsPage() {
                         </thead>
                         <tbody>
                             {filtered.map((r, i) => {
-                                const cheatingCount = demoApi.getCheatingCountForResult(r.exam_id, r.user_id);
+                                const cheatingCount = r.cheating_count ?? 0;
                                 return (
                                     <tr key={r.id}>
                                         <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>

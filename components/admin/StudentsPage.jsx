@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import * as XLSX from 'xlsx';
 import {
@@ -12,6 +12,9 @@ import {
 
 export default function StudentsPage() {
     const [users, setUsers] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [classNames, setClassNames] = useState([]);
+    const [academicYears, setAcademicYears] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [editing, setEditing] = useState(null);
@@ -25,13 +28,26 @@ export default function StudentsPage() {
     const fileInputRef = useRef(null);
     const toast = useToast();
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => {
+        const load = async () => {
+            const [u, dept, cls, years] = await Promise.all([
+                api.getUsers(),
+                api.getDepartments(),
+                api.getClassNames(),
+                api.getAcademicYears(),
+            ]);
+            setUsers(u);
+            setDepartments(dept);
+            setClassNames(cls);
+            setAcademicYears(years);
+        };
+        load();
+    }, []);
 
-    const loadData = () => setUsers(demoApi.getUsers());
-
-    const departments = demoApi.getDepartments();
-    const classNames = demoApi.getClassNames();
-    const academicYears = demoApi.getAcademicYears();
+    const loadData = async () => {
+        const u = await api.getUsers();
+        setUsers(u);
+    };
 
     const students = users.filter(u => u.role === 'student');
     const filtered = students.filter(s => {
@@ -47,15 +63,15 @@ export default function StudentsPage() {
         );
     });
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.full_name.trim()) { toast.error('Vui lòng nhập họ tên'); return; }
         if (!form.email.trim()) { toast.error('Vui lòng nhập email'); return; }
 
         if (editing) {
-            demoApi.updateUser(editing.id, form);
+            await api.updateUser(editing.id, form);
             toast.success('Cập nhật thông tin thành công');
         } else {
-            const result = demoApi.addUser(form);
+            const result = await api.addUser(form);
             if (!result.success) { toast.error(result.error); return; }
             toast.success('Thêm sinh viên thành công');
         }
@@ -83,13 +99,13 @@ export default function StudentsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = (user) => {
+    const handleDelete = async (user) => {
         if (['admin@quiz.com', 'student@quiz.com'].includes(user.email)) {
             toast.warning('Không thể xóa tài khoản demo');
             return;
         }
         if (confirm(`Xóa sinh viên "${user.full_name}"?`)) {
-            demoApi.deleteUser(user.id);
+            await api.deleteUser(user.id);
             toast.success('Đã xóa sinh viên');
             loadData();
         }
@@ -123,9 +139,9 @@ export default function StudentsPage() {
         e.target.value = '';
     };
 
-    const handleImportConfirm = () => {
+    const handleImportConfirm = async () => {
         if (!importData) return;
-        const result = demoApi.bulkImportUsers(importData);
+        const result = await api.bulkImportUsers(importData);
         setImportResult(result);
         if (result.imported > 0) {
             toast.success(`Đã import ${result.imported} sinh viên`);

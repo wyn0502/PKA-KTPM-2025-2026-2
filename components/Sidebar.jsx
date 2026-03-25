@@ -7,7 +7,7 @@ import {
     Users, LogOut, Menu, X, GraduationCap, BarChart3,
     FileText, History, Settings, RefreshCw
 } from 'lucide-react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 
 export default function Sidebar({ activePage, setActivePage, role }) {
     const { user, logout } = useAuth();
@@ -40,9 +40,9 @@ export default function Sidebar({ activePage, setActivePage, role }) {
         setMobileOpen(false);
     };
 
-    const handleResetData = () => {
+    const handleResetData = async () => {
         if (confirm('Reset toàn bộ dữ liệu demo về mặc định? Hành động này không thể hoàn tác.')) {
-            demoApi.resetData();
+            await api.resetData();
             window.location.reload();
         }
     };

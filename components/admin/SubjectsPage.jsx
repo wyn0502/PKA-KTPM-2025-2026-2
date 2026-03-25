@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { BookOpen, Plus, Pencil, Trash2, X, FileQuestion } from 'lucide-react';
 
@@ -14,23 +14,27 @@ export default function SubjectsPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    const loadData = () => {
-        setSubjects(demoApi.getSubjects().map(s => ({
+    const loadData = async () => {
+        const [subjs, questions] = await Promise.all([
+            api.getSubjects(),
+            api.getQuestions(),
+        ]);
+        setSubjects(subjs.map(s => ({
             ...s,
-            questionCount: demoApi.getQuestions(s.id).length,
+            questionCount: questions.filter(q => q.subject_id === s.id).length,
         })));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) {
             toast.error('Vui lòng nhập tên môn học');
             return;
         }
         if (editing) {
-            demoApi.updateSubject(editing.id, form);
+            await api.updateSubject(editing.id, form);
             toast.success('Cập nhật môn học thành công');
         } else {
-            demoApi.addSubject(form);
+            await api.addSubject(form);
             toast.success('Thêm môn học thành công');
         }
         closeModal();
@@ -49,14 +53,14 @@ export default function SubjectsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = (subject) => {
-        const result = demoApi.deleteSubject(subject.id);
+    const handleDelete = async (subject) => {
+        const result = await api.deleteSubject(subject.id);
         if (result.success === false) {
             toast.error(result.error);
             return;
         }
         if (confirm(`Xóa môn học "${subject.name}"?`)) {
-            demoApi.deleteSubject(subject.id);
+            await api.deleteSubject(subject.id);
             toast.success('Đã xóa môn học');
             loadData();
         }

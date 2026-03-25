@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     Upload, FileJson, CheckCircle2, AlertCircle, X,
     FileUp, Download, Eye, Trash2
@@ -74,14 +74,14 @@ export default function ImportWayground({ subjects, onImported, onClose }) {
         });
     };
 
-    const handleImport = () => {
+    const handleImport = async () => {
         if (!jsonData || !subjectId) return;
         setImporting(true);
 
         try {
             let importedCount = 0;
 
-            jsonData.forEach(item => {
+            for (const item of jsonData) {
                 // Convert Wayground format to our format
                 const optionEntries = Object.entries(item.options);
                 const answers = optionEntries.map(([label, content]) => ({
@@ -89,7 +89,7 @@ export default function ImportWayground({ subjects, onImported, onClose }) {
                     is_correct: item.correctAnswer === label,
                 }));
 
-                demoApi.addQuestion({
+                await api.addQuestion({
                     content: item.question,
                     subject_id: subjectId,
                     difficulty: difficulty,
@@ -97,7 +97,7 @@ export default function ImportWayground({ subjects, onImported, onClose }) {
                 });
 
                 importedCount++;
-            });
+            }
 
             setResult({
                 type: 'success',

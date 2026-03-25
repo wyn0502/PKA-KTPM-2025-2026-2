@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     Clock, ChevronLeft, ChevronRight, Send, AlertTriangle,
     CheckCircle2, XCircle, ArrowLeft, Timer, Hash, Flag,
@@ -36,25 +36,28 @@ export default function TakeExam({ examId, onFinish }) {
 
     // Load exam and shuffle
     useEffect(() => {
-        const examData = demoApi.getExamById(examId);
-        if (!examData) return;
-        setExam(examData);
-        setTimeLeft(examData.duration_minutes * 60);
+        const load = async () => {
+            const examData = await api.getExamById(examId);
+            if (!examData) return;
+            setExam(examData);
+            setTimeLeft(examData.duration_minutes * 60);
 
-        let qs = [...examData.questions];
-        if (examData.shuffle_questions) qs = shuffleArray(qs);
-        if (examData.shuffle_answers) {
-            qs = qs.map(q => ({ ...q, answers: shuffleArray(q.answers) }));
-        }
-        setQuestions(qs);
-        // Register active session for monitoring
-        demoApi.startExamSession(examId, user.id);
+            let qs = [...examData.questions];
+            if (examData.shuffle_questions) qs = shuffleArray(qs);
+            if (examData.shuffle_answers) {
+                qs = qs.map(q => ({ ...q, answers: shuffleArray(q.answers) }));
+            }
+            setQuestions(qs);
+            // Register active session for monitoring
+            await api.startExamSession(examId, user.id);
+        };
+        load();
     }, [examId, user]);
 
     // Log cheating event helper
-    const logCheat = useCallback((type, detail) => {
+    const logCheat = useCallback(async (type, detail) => {
         if (!user || isSubmitted) return;
-        demoApi.addCheatingLog(examId, user.id, type, detail);
+        await api.addCheatingLog(examId, user.id, type, detail);
         cheatingCountRef.current += 1;
         setCheatingWarnings(cheatingCountRef.current);
         setCheatingAlert(detail);
@@ -174,7 +177,7 @@ export default function TakeExam({ examId, onFinish }) {
         return () => clearInterval(timerRef.current);
     }, [isSubmitted]);
 
-    const doSubmit = useCallback(() => {
+    const doSubmit = useCallback(async () => {
         if (submitCalledRef.current) return;
         submitCalledRef.current = true;
         clearInterval(timerRef.current);
@@ -182,9 +185,9 @@ export default function TakeExam({ examId, onFinish }) {
         if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
         }
-        const submitResult = demoApi.submitExam(examId, user.id, answers);
+        const submitResult = await api.submitExam(examId, user.id, answers);
         if (submitResult.success) {
-            demoApi.endExamSession(examId, user.id);
+            await api.endExamSession(examId, user.id);
             setResult(submitResult.result);
             setIsSubmitted(true);
         }
@@ -208,11 +211,11 @@ export default function TakeExam({ examId, onFinish }) {
         }
     };
 
-    const selectAnswer = (questionId, answerId) => {
+    const selectAnswer = async (questionId, answerId) => {
         if (isSubmitted) return;
         setAnswers(prev => {
             const next = { ...prev, [questionId]: answerId };
-            demoApi.updateExamSession(examId, user.id, Object.keys(next).length, questions.length);
+            api.updateExamSession(examId, user.id, Object.keys(next).length, questions.length);
             return next;
         });
     };

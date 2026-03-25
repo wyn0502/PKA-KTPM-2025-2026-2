@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     Users, FileQuestion, ClipboardList, TrendingUp,
     CheckCircle2, BarChart3, BookOpen, Activity
@@ -18,11 +18,25 @@ export default function AdminHome() {
     const [stats, setStats] = useState(null);
     const [results, setResults] = useState([]);
     const [questions, setQuestions] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [exams, setExams] = useState([]);
 
     useEffect(() => {
-        setStats(demoApi.getStats());
-        setResults(demoApi.getAllResults());
-        setQuestions(demoApi.getQuestions());
+        const load = async () => {
+            const [s, r, q, subj, ex] = await Promise.all([
+                api.getStats(),
+                api.getAllResults(),
+                api.getQuestions(),
+                api.getSubjects(),
+                api.getExams(),
+            ]);
+            setStats(s);
+            setResults(r);
+            setQuestions(q);
+            setSubjects(subj);
+            setExams(ex);
+        };
+        load();
     }, []);
 
     if (!stats) return <div className="loading-container"><div className="spinner" /></div>;
@@ -223,10 +237,10 @@ export default function AdminHome() {
                             </tr>
                         </thead>
                         <tbody>
-                            {demoApi.getSubjects().map(subject => {
+                            {subjects.map(subject => {
                                 const qCount = questions.filter(q => q.subject_id === subject.id).length;
-                                const exams = demoApi.getExams().filter(e => e.subject_id === subject.id);
-                                const examIds = exams.map(e => e.id);
+                                const subjectExams = exams.filter(e => e.subject_id === subject.id);
+                                const examIds = subjectExams.map(e => e.id);
                                 const rCount = results.filter(r => examIds.includes(r.exam_id)).length;
                                 return (
                                     <tr key={subject.id}>
@@ -237,7 +251,7 @@ export default function AdminHome() {
                                             </div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>{qCount}</td>
-                                        <td style={{ textAlign: 'center' }}>{exams.length}</td>
+                                        <td style={{ textAlign: 'center' }}>{subjectExams.length}</td>
                                         <td style={{ textAlign: 'center' }}>{rCount}</td>
                                     </tr>
                                 );

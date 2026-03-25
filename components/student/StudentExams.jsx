@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     FileText, Clock, CheckSquare, Play, CheckCircle2,
     Shuffle, BookOpen, Calendar, Lock
@@ -13,7 +13,13 @@ export default function StudentExams({ onStartExam }) {
     const [exams, setExams] = useState([]);
 
     useEffect(() => {
-        if (user) setExams(demoApi.getExamsForStudent(user.id));
+        const load = async () => {
+            if (user) {
+                const data = await api.getExamsForStudent(user.id);
+                setExams(data);
+            }
+        };
+        load();
     }, [user]);
 
     const activeExams = exams.filter(e => !e.hasSubmitted);

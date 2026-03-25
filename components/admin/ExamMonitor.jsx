@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     ArrowLeft, Monitor, Users, CheckCircle2, Clock,
     ShieldAlert, RefreshCw, UserCheck, UserX, BarChart3
@@ -12,8 +12,8 @@ export default function ExamMonitor({ examId, onBack }) {
     const [autoRefresh, setAutoRefresh] = useState(true);
     const intervalRef = useRef(null);
 
-    const loadData = () => {
-        const monitorData = demoApi.getExamMonitorData(examId);
+    const loadData = async () => {
+        const monitorData = await api.getExamMonitorData(examId);
         setData(monitorData);
     };
 

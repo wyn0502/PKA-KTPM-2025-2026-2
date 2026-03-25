@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { Users, Plus, Pencil, Trash2, X } from 'lucide-react';
 
@@ -15,18 +15,22 @@ export default function GroupsPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    const loadData = () => {
-        setGroups(demoApi.getGroups());
-        setStudents(demoApi.getUsers().filter(u => u.role === 'student'));
+    const loadData = async () => {
+        const [g, users] = await Promise.all([
+            api.getGroups(),
+            api.getUsers(),
+        ]);
+        setGroups(g);
+        setStudents(users.filter(u => u.role === 'student'));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) { toast.error('Vui lòng nhập tên nhóm'); return; }
         if (editing) {
-            demoApi.updateGroup(editing.id, form);
+            await api.updateGroup(editing.id, form);
             toast.success('Cập nhật nhóm thành công');
         } else {
-            demoApi.addGroup(form);
+            await api.addGroup(form);
             toast.success('Tạo nhóm thành công');
         }
         closeModal();
@@ -49,9 +53,9 @@ export default function GroupsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = (group) => {
+    const handleDelete = async (group) => {
         if (confirm(`Xóa nhóm "${group.name}"?`)) {
-            demoApi.deleteGroup(group.id);
+            await api.deleteGroup(group.id);
             toast.success('Đã xóa nhóm');
             loadData();
         }

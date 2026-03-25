@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import ImportWayground from './ImportWayground';
 import {
@@ -34,9 +34,13 @@ export default function QuestionsPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    const loadData = () => {
-        setQuestions(demoApi.getQuestions());
-        setSubjects(demoApi.getSubjects());
+    const loadData = async () => {
+        const [q, s] = await Promise.all([
+            api.getQuestions(),
+            api.getSubjects(),
+        ]);
+        setQuestions(q);
+        setSubjects(s);
     };
 
     const filteredQuestions = questions.filter(q => {
@@ -46,7 +50,7 @@ export default function QuestionsPage() {
         return true;
     });
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.content.trim()) { toast.error('Vui lòng nhập nội dung câu hỏi'); return; }
         if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
 
@@ -57,10 +61,10 @@ export default function QuestionsPage() {
         if (!hasCorrect) { toast.error('Phải có ít nhất 1 đáp án đúng'); return; }
 
         if (editing) {
-            demoApi.updateQuestion(editing.id, { ...form, answers: filledAnswers });
+            await api.updateQuestion(editing.id, { ...form, answers: filledAnswers });
             toast.success('Cập nhật câu hỏi thành công');
         } else {
-            demoApi.addQuestion({ ...form, answers: filledAnswers });
+            await api.addQuestion({ ...form, answers: filledAnswers });
             toast.success('Thêm câu hỏi thành công');
         }
         closeModal();
@@ -86,9 +90,9 @@ export default function QuestionsPage() {
         setShowModal(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (confirm('Xóa câu hỏi này? Câu hỏi sẽ bị xóa khỏi các đề thi liên quan.')) {
-            demoApi.deleteQuestion(id);
+            await api.deleteQuestion(id);
             toast.success('Đã xóa câu hỏi');
             loadData();
         }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import {
     History, Trophy, Calendar, CheckCircle2, XCircle,
     Eye, EyeOff, BarChart3, Search
@@ -15,7 +15,13 @@ export default function StudentResults() {
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
-        if (user) setResults(demoApi.getResults(user.id));
+        const load = async () => {
+            if (user) {
+                const data = await api.getResults(user.id);
+                setResults(data);
+            }
+        };
+        load();
     }, [user]);
 
     const filtered = results.filter(r => {

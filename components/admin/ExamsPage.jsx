@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { demoApi } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import {
     ClipboardList, Plus, Pencil, Trash2, X, Play, Pause,
@@ -28,14 +28,20 @@ export default function ExamsPage({ onMonitorExam }) {
 
     useEffect(() => { loadData(); }, []);
 
-    const loadData = () => {
-        setExams(demoApi.getExams());
-        setQuestions(demoApi.getQuestions());
-        setSubjects(demoApi.getSubjects());
-        setGroups(demoApi.getGroups());
+    const loadData = async () => {
+        const [e, q, s, g] = await Promise.all([
+            api.getExams(),
+            api.getQuestions(),
+            api.getSubjects(),
+            api.getGroups(),
+        ]);
+        setExams(e);
+        setQuestions(q);
+        setSubjects(s);
+        setGroups(g);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.title.trim()) { toast.error('Vui lòng nhập tên đề thi'); return; }
         if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
         if (form.question_ids.length === 0) { toast.warning('Chưa chọn câu hỏi nào cho đề thi'); }
@@ -51,10 +57,10 @@ export default function ExamsPage({ onMonitorExam }) {
         };
 
         if (editing) {
-            demoApi.updateExam(editing.id, saveData);
+            await api.updateExam(editing.id, saveData);
             toast.success('Cập nhật đề thi thành công');
         } else {
-            demoApi.addExam(saveData);
+            await api.addExam(saveData);
             toast.success('Tạo đề thi thành công');
         }
         closeModal();
@@ -81,20 +87,20 @@ export default function ExamsPage({ onMonitorExam }) {
         setShowModal(true);
     };
 
-    const toggleStatus = (exam) => {
+    const toggleStatus = async (exam) => {
         const newStatus = exam.status === 'active' ? 'closed' : 'active';
-        demoApi.updateExamStatus(exam.id, newStatus);
+        await api.updateExamStatus(exam.id, newStatus);
         toast.info(newStatus === 'active' ? 'Đã mở đề thi' : 'Đã đóng đề thi');
         loadData();
     };
 
-    const handleDelete = (exam) => {
+    const handleDelete = async (exam) => {
         if (exam.result_count > 0) {
             if (!confirm(`Đề thi "${exam.title}" đã có ${exam.result_count} lượt thi. Xóa sẽ mất toàn bộ kết quả. Tiếp tục?`)) return;
         } else {
             if (!confirm(`Xóa đề thi "${exam.title}"?`)) return;
         }
-        demoApi.deleteExam(exam.id);
+        await api.deleteExam(exam.id);
         toast.success('Đã xóa đề thi');
         loadData();
     };
