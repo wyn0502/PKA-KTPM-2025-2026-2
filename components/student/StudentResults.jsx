@@ -17,7 +17,7 @@ export default function StudentResults() {
     useEffect(() => {
         const load = async () => {
             if (user) {
-                const data = await api.getResults(user.id);
+                const data = await api.getResultsByUser(user.id);
                 setResults(data);
             }
         };

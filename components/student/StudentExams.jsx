@@ -15,7 +15,7 @@ export default function StudentExams({ onStartExam }) {
     useEffect(() => {
         const load = async () => {
             if (user) {
-                const data = await api.getExamsForStudent(user.id);
+                const data = await api.getAvailableExams(user.id);
                 setExams(data);
             }
         };
