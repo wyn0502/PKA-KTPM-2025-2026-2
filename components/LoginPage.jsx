@@ -2,24 +2,28 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
-import { GraduationCap, Mail, Lock, User, BookOpen, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { useSettings } from '@/lib/settings';
+import { GraduationCap, Mail, Lock, User, BookOpen, Eye, EyeOff, CheckCircle2, AtSign } from 'lucide-react';
 
 export default function LoginPage() {
     const { login, register } = useAuth();
+    const { settings } = useSettings();
     const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
+    const [emailOrId, setEmailOrId] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [studentId, setStudentId] = useState('');
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccessMsg('');
 
-        if (!email.trim()) { setError('Vui lòng nhập email'); return; }
+        if (!emailOrId.trim()) { setError('Vui lòng nhập email hoặc mã sinh viên'); return; }
         if (!password.trim()) { setError('Vui lòng nhập mật khẩu'); return; }
 
         if (!isLogin) {
@@ -30,16 +34,20 @@ export default function LoginPage() {
         setLoading(true);
         try {
             if (isLogin) {
-                const result = await login(email, password);
-                if (!result.success) setError(result.error);
+                const result = await login(emailOrId, password);
+                if (!result.success) setError(result.message || 'Đăng nhập thất bại');
             } else {
                 const result = await register({
-                    email,
+                    email: emailOrId,
                     password,
                     full_name: fullName,
                     student_id: studentId,
                 });
-                if (!result.success) setError(result.error);
+                if (!result.success) {
+                    setError(result.message || 'Đăng ký thất bại');
+                } else if (result.needsConfirmation) {
+                    setSuccessMsg(result.message);
+                }
             }
         } catch {
             setError('Đã xảy ra lỗi. Vui lòng thử lại.');
@@ -47,27 +55,27 @@ export default function LoginPage() {
         setLoading(false);
     };
 
-    const handleDemoLogin = async (demoEmail, demoPassword) => {
-        setError('');
-        setLoading(true);
-        const result = await login(demoEmail, demoPassword);
-        if (!result.success) setError(result.error);
-        setLoading(false);
-    };
-
     const switchMode = () => {
         setIsLogin(!isLogin);
         setError('');
+        setSuccessMsg('');
         setPassword('');
+        setEmailOrId('');
     };
+
+    const appName = settings?.appName || 'QuizPro';
+    const logoUrl = settings?.logoUrl || '';
 
     return (
         <div className="login-page">
             <div className="login-card">
                 <div className="login-logo">
-                    <GraduationCap size={28} />
+                    {logoUrl
+                        ? <img src={logoUrl} alt={appName} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 6 }} />
+                        : <GraduationCap size={28} />
+                    }
                 </div>
-                <h1 className="login-title">QuizPro</h1>
+                <h1 className="login-title">{appName}</h1>
                 <p className="login-subtitle">
                     {isLogin ? 'Đăng nhập vào hệ thống thi trắc nghiệm' : 'Tạo tài khoản sinh viên mới'}
                 </p>
@@ -75,6 +83,13 @@ export default function LoginPage() {
                 {error && (
                     <div className="alert alert-error">
                         <span>{error}</span>
+                    </div>
+                )}
+
+                {successMsg && (
+                    <div className="alert alert-success" style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>{successMsg}</span>
                     </div>
                 )}
 
@@ -112,19 +127,25 @@ export default function LoginPage() {
                     )}
 
                     <div className="form-group">
-                        <label className="form-label">Email <span style={{ color: 'var(--danger)' }}>*</span></label>
+                        <label className="form-label">
+                            {isLogin ? 'Email hoặc Mã sinh viên' : 'Email'}
+                            <span style={{ color: 'var(--danger)' }}> *</span>
+                        </label>
                         <div className="input-icon-wrapper">
-                            <Mail size={18} className="input-icon" />
+                            <AtSign size={18} className="input-icon" />
                             <input
-                                type="email"
+                                type="text"
                                 className="form-input form-input-icon"
-                                placeholder="email@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                autoComplete="email"
+                                placeholder={isLogin ? 'email@example.com hoặc SV001' : 'email@example.com'}
+                                value={emailOrId}
+                                onChange={(e) => setEmailOrId(e.target.value)}
+                                autoComplete="username"
                                 required
                             />
                         </div>
+                        {isLogin && (
+                            <p className="form-helper">Có thể đăng nhập bằng địa chỉ email hoặc mã sinh viên</p>
+                        )}
                     </div>
 
                     <div className="form-group">
@@ -166,28 +187,6 @@ export default function LoginPage() {
                         {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
                     </span>
                 </p>
-
-                <div className="login-demo">
-                    <p className="login-demo-title">Tài khoản Demo</p>
-                    <div className="login-demo-accounts">
-                        <button className="login-demo-btn" onClick={() => handleDemoLogin('admin@quiz.com', 'admin123')} disabled={loading}>
-                            <ShieldCheck size={18} style={{ color: 'var(--primary-light)' }} />
-                            <div style={{ flex: 1, textAlign: 'left' }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>admin@quiz.com</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mật khẩu: admin123</div>
-                            </div>
-                            <span className="badge badge-primary">Admin</span>
-                        </button>
-                        <button className="login-demo-btn" onClick={() => handleDemoLogin('student@quiz.com', 'student123')} disabled={loading}>
-                            <GraduationCap size={18} style={{ color: 'var(--success)' }} />
-                            <div style={{ flex: 1, textAlign: 'left' }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>student@quiz.com</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mật khẩu: student123</div>
-                            </div>
-                            <span className="badge badge-success">Student</span>
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     );

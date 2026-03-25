@@ -1,25 +1,42 @@
-# Hướng dẫn triển khai Online Quiz System
+# Hướng dẫn triển khai Hệ thống thi trắc nghiệm trực tuyến
 
-## 1. Chuẩn bị
+## Tổng quan
 
-### Yêu cầu
-- Node.js >= 18
-- Tài khoản [Supabase](https://supabase.com) (miễn phí)
-- Tài khoản [Vercel](https://vercel.com) (miễn phí)
-- Repository trên GitHub
+Hệ thống thi trắc nghiệm trực tuyến hỗ trợ 2 chế độ:
+- **Demo Mode** (mặc định): Dữ liệu lưu trong localStorage, không cần backend
+- **Production Mode**: Kết nối Supabase để lưu trữ dữ liệu thực
 
 ---
 
-## 2. Cấu hình Supabase
+## 1. Chạy local (Development)
+
+```bash
+npm install
+npm run dev
+# Mở http://localhost:3000
+```
+
+Không cần cấu hình gì thêm — hệ thống chạy ở Demo Mode.
+
+---
+
+## 2. Cấu hình Supabase (Production)
 
 ### 2.1. Tạo project Supabase
-1. Đăng nhập [app.supabase.com](https://app.supabase.com)
-2. Click **New Project**
-3. Đặt tên project, chọn region gần nhất (Singapore cho VN), đặt database password
-4. Chờ project khởi tạo xong
 
-### 2.2. Tạo bảng database
-Vào **SQL Editor** trong Supabase Dashboard, chạy script sau:
+1. Đăng nhập [app.supabase.com](https://app.supabase.com)
+2. Click **New Project** → đặt tên, chọn region **Southeast Asia (Singapore)**, đặt database password
+3. Chờ project khởi tạo xong (~1 phút)
+
+### 2.2. Tắt xác nhận email (quan trọng)
+
+Vào **Authentication > Providers > Email** → tắt **"Confirm email"** → Save.
+
+> Nếu không tắt, người dùng sẽ cần xác nhận email trước khi đăng nhập.
+
+### 2.3. Tạo bảng database
+
+Vào **SQL Editor** → chạy script sau:
 
 ```sql
 -- Bảng users
@@ -32,7 +49,7 @@ CREATE TABLE users (
   department TEXT,
   class_name TEXT,
   academic_year TEXT,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -146,17 +163,12 @@ CREATE INDEX idx_exam_results_exam ON exam_results(exam_id);
 CREATE INDEX idx_exam_results_user ON exam_results(user_id);
 CREATE INDEX idx_cheating_logs_exam ON cheating_logs(exam_id);
 CREATE INDEX idx_active_sessions_exam ON active_sessions(exam_id);
-
--- Tạo admin mặc định
-INSERT INTO users (email, full_name, role, password_hash)
-VALUES ('admin@quiz.com', 'Admin', 'admin', 'CHANGE_THIS_TO_HASH');
 ```
 
-### 2.3. Cấu hình Row Level Security (RLS)
-Vào **Authentication > Policies** hoặc chạy SQL:
+### 2.4. Cấu hình Row Level Security (RLS)
 
 ```sql
--- Bật RLS cho tất cả bảng
+-- Bật RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
@@ -170,145 +182,82 @@ ALTER TABLE exam_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cheating_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE active_sessions ENABLE ROW LEVEL SECURITY;
 
--- Policy cho phép đọc (tùy chỉnh theo nhu cầu)
--- Ví dụ: Admin đọc tất cả, student chỉ đọc dữ liệu liên quan
-CREATE POLICY "Allow all for authenticated" ON users FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON subjects FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON questions FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON answers FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON exams FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON exam_questions FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON groups FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON group_members FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON exam_groups FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON exam_results FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON cheating_logs FOR ALL USING (true);
-CREATE POLICY "Allow all for authenticated" ON active_sessions FOR ALL USING (true);
+-- Policies (cho phép tất cả)
+CREATE POLICY "Allow all" ON users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON subjects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON questions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON answers FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON exams FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON exam_questions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON groups FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON group_members FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON exam_groups FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON exam_results FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON cheating_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON active_sessions FOR ALL USING (true) WITH CHECK (true);
 ```
 
-### 2.4. Lấy API Keys
-1. Vào **Settings > API** trong Supabase Dashboard
-2. Copy:
-   - **Project URL**: `https://xxxxx.supabase.co`
-   - **anon public key**: `eyJhbGciOiJIUzI1NiIs...`
+### 2.5. Tạo tài khoản Admin
+
+Vào **Authentication > Users** → **Add user** → nhập email & password.
+
+Sau đó vào **SQL Editor** → thêm profile:
+
+```sql
+INSERT INTO users (email, full_name, role, password_hash)
+VALUES ('your-admin@email.com', 'Admin', 'admin', '');
+```
+
+### 2.6. Lấy API Keys
+
+Vào **Settings > API**:
+- **Project URL**: `https://xxxxx.supabase.co`
+- **anon public key**: `eyJhbGciOiJIUzI1NiIs...`
 
 ---
 
-## 3. Cấu hình biến môi trường
+## 3. Biến môi trường
 
-Tạo file `.env.local` trong thư mục project:
+Tạo file `.env.local` (xem `.env.example`):
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-> **Lưu ý**: Khi không có biến môi trường, hệ thống tự động chạy ở **Demo Mode** với dữ liệu localStorage. Đây là cách mặc định khi phát triển.
+> Khi không có biến môi trường → tự động chạy **Demo Mode** (localStorage).
 
 ---
 
 ## 4. Deploy lên Vercel
 
-### 4.1. Cách 1: Deploy từ GitHub (Khuyến nghị)
-1. Push code lên GitHub repository
-2. Đăng nhập [vercel.com](https://vercel.com)
-3. Click **Add New > Project**
-4. Import repository từ GitHub
-5. Cấu hình:
-   - **Framework Preset**: Next.js
-   - **Root Directory**: `online-quiz-system` (nếu không phải root)
-   - **Environment Variables**: Thêm 2 biến:
-     - `NEXT_PUBLIC_SUPABASE_URL` = URL Supabase của bạn
-     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = Anon key Supabase
-6. Click **Deploy**
+### Cách 1: Deploy từ GitHub (Khuyến nghị)
 
-### 4.2. Cách 2: Deploy bằng Vercel CLI
+1. Push code lên GitHub
+2. Đăng nhập [vercel.com](https://vercel.com) → **Add New > Project**
+3. Import repository
+4. Cấu hình:
+   - **Framework Preset**: Next.js (tự nhận)
+   - **Root Directory**: để trống (Next.js nằm ở root repo)
+   - **Environment Variables**: thêm `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+5. Click **Deploy**
+
+### Cách 2: Vercel CLI
+
 ```bash
-# Cài Vercel CLI
 npm i -g vercel
-
-# Đăng nhập
 vercel login
-
-# Deploy (trong thư mục online-quiz-system)
-cd online-quiz-system
-vercel
-
-# Deploy production
 vercel --prod
 ```
 
-Khi hỏi biến môi trường, nhập các giá trị Supabase ở trên.
-
-### 4.3. Cấu hình domain (tùy chọn)
-1. Vào project trên Vercel Dashboard
-2. **Settings > Domains**
-3. Thêm domain tùy chỉnh
-4. Cập nhật DNS theo hướng dẫn
-
 ---
 
-## 5. Chạy local (Development)
+## 5. Xử lý lỗi thường gặp
 
-```bash
-# Cài dependencies
-npm install
-
-# Chạy development server
-npm run dev
-
-# Mở trình duyệt: http://localhost:3000
-```
-
-### Tài khoản demo (Demo Mode - không cần Supabase):
-- **Admin**: admin@quiz.com / admin123
-- **Sinh viên**: student@quiz.com / student123
-
----
-
-## 6. Cấu trúc project
-
-```
-online-quiz-system/
-├── app/
-│   ├── globals.css      # CSS toàn cục
-│   ├── layout.js        # Root layout
-│   └── page.js          # Entry point
-├── components/
-│   ├── admin/           # Các trang admin
-│   │   ├── AdminDashboard.jsx
-│   │   ├── AdminHome.jsx
-│   │   ├── ExamsPage.jsx
-│   │   ├── ExamMonitor.jsx    # Giám sát thi realtime
-│   │   ├── StudentsPage.jsx
-│   │   ├── QuestionsPage.jsx
-│   │   ├── SubjectsPage.jsx
-│   │   ├── GroupsPage.jsx
-│   │   └── AdminResultsPage.jsx
-│   ├── student/         # Các trang sinh viên
-│   │   ├── StudentDashboard.jsx
-│   │   ├── StudentExams.jsx
-│   │   ├── TakeExam.jsx       # Thi + chống gian lận
-│   │   └── StudentResults.jsx
-│   ├── LoginPage.jsx
-│   └── Sidebar.jsx
-├── lib/
-│   ├── supabase.js      # Data layer (Supabase + Demo)
-│   ├── auth.js          # Authentication context
-│   └── toast.js         # Toast notifications
-└── package.json
-```
-
----
-
-## 7. Tính năng chính
-
-- Quản lý môn học, câu hỏi, đề thi
-- Import sinh viên từ Excel/CSV (hàng loạt)
-- Quản lý sinh viên theo khoa, lớp, khóa
-- Tạo đề thi với thời gian bắt đầu/kết thúc
-- Trộn câu hỏi & đáp án
-- Hệ thống chống gian lận (tab switch, copy/paste, fullscreen, devtools)
-- Giám sát thi realtime (xem tiến độ từng sinh viên)
-- Xuất kết quả ra Excel
-- Giao diện dark theme responsive
+| Lỗi | Nguyên nhân | Cách fix |
+|-----|-------------|----------|
+| `404: NOT_FOUND` trên Vercel | Root Directory sai | Đảm bảo Root Directory = trống (không phải `online-quiz-system`) |
+| `Invalid login credentials` | Sai email/password | Kiểm tra lại thông tin đăng nhập |
+| `Email not confirmed` | Chưa xác nhận email | Tắt email confirmation trong Supabase **Authentication > Providers > Email** |
+| `400 Bad Request` khi đăng nhập | Env vars không đúng | Kiểm tra `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY` trong Vercel |
+| Dữ liệu mất sau reload | Đang ở Demo Mode | Cấu hình Supabase env vars |

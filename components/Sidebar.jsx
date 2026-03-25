@@ -2,16 +2,20 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useSettings } from '@/lib/settings';
 import {
     LayoutDashboard, BookOpen, FileQuestion, ClipboardList,
     Users, LogOut, Menu, X, GraduationCap, BarChart3,
-    FileText, History, Settings, RefreshCw
+    FileText, History, Settings
 } from 'lucide-react';
-import { api } from '@/lib/api';
 
 export default function Sidebar({ activePage, setActivePage, role }) {
     const { user, logout } = useAuth();
+    const { settings } = useSettings();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    const appName = settings?.appName || 'QuizPro';
+    const logoUrl = settings?.logoUrl || '';
 
     const adminLinks = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,21 +44,26 @@ export default function Sidebar({ activePage, setActivePage, role }) {
         setMobileOpen(false);
     };
 
-    const handleResetData = async () => {
-        if (confirm('Reset toàn bộ dữ liệu demo về mặc định? Hành động này không thể hoàn tác.')) {
-            await api.resetData();
-            window.location.reload();
-        }
-    };
+    const LogoContent = () => (
+        logoUrl
+            ? <img src={logoUrl} alt={appName} style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
+            : <GraduationCap size={22} />
+    );
+
+    const LogoContentSm = () => (
+        logoUrl
+            ? <img src={logoUrl} alt={appName} style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 3 }} />
+            : <GraduationCap size={18} />
+    );
 
     return (
         <>
             <div className="mobile-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className="sidebar-logo" style={{ width: 34, height: 34, fontSize: '0.9rem' }}>
-                        <GraduationCap size={18} />
+                        <LogoContentSm />
                     </div>
-                    <span style={{ fontWeight: 700, fontSize: '1rem' }}>QuizPro</span>
+                    <span style={{ fontWeight: 700, fontSize: '1rem' }}>{appName}</span>
                 </div>
                 <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)}>
                     {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -68,10 +77,10 @@ export default function Sidebar({ activePage, setActivePage, role }) {
             <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
-                        <GraduationCap size={22} />
+                        <LogoContent />
                     </div>
                     <div>
-                        <div className="sidebar-title">QuizPro</div>
+                        <div className="sidebar-title">{appName}</div>
                         <div className="sidebar-subtitle">
                             {role === 'admin' ? 'Quản trị hệ thống' : 'Sinh viên'}
                         </div>
@@ -96,9 +105,12 @@ export default function Sidebar({ activePage, setActivePage, role }) {
                     {role === 'admin' && (
                         <>
                             <span className="sidebar-section-label" style={{ marginTop: 16 }}>Hệ thống</span>
-                            <button className="sidebar-link" onClick={handleResetData}>
-                                <RefreshCw size={20} />
-                                <span>Reset dữ liệu demo</span>
+                            <button
+                                className={`sidebar-link ${activePage === 'settings' ? 'active' : ''}`}
+                                onClick={() => handleNavClick('settings')}
+                            >
+                                <Settings size={20} />
+                                <span>Cài đặt hệ thống</span>
                             </button>
                         </>
                     )}

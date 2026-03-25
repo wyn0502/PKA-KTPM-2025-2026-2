@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hệ thống thi trắc nghiệm trực tuyến
 
-## Getting Started
+Nền tảng thi trắc nghiệm hiện đại dành cho giảng viên và sinh viên, xây dựng bằng **Next.js 16 + Supabase**.
 
-First, run the development server:
+## Tính năng
+
+- **Admin:** Quản lý môn học, ngân hàng câu hỏi, đề thi, sinh viên, nhóm thi, kết quả
+- **Sinh viên:** Làm bài thi trực tuyến, xem lịch sử & điểm số
+- **Chống gian lận:** Phát hiện chuyển tab, copy/paste, thoát fullscreen, mở DevTools
+- **Giám sát thi realtime:** Admin theo dõi tiến độ từng sinh viên
+- **Import hàng loạt:** Nhập danh sách sinh viên từ Excel/CSV
+- **Xuất kết quả:** Tải kết quả thi ra file Excel
+- **Tùy chỉnh thương hiệu:** Đổi tên hệ thống & logo trong cài đặt admin
+- **Demo Mode:** Chạy hoàn toàn bằng localStorage, không cần Supabase
+
+## Công nghệ
+
+| Package | Phiên bản |
+|---------|-----------|
+| Next.js | 16 |
+| React | 19 |
+| Supabase JS | ^2.97 |
+| Recharts | ^3.7 |
+| xlsx | ^0.18 |
+| lucide-react | ^0.575 |
+
+## Chạy local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Mở http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> Không cần cấu hình Supabase — hệ thống tự chạy ở **Demo Mode** với dữ liệu localStorage.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Cấu hình Supabase (Production)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Tạo file `.env.local` (xem `.env.example`):
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-To learn more about Next.js, take a look at the following resources:
+Xem [DEPLOY.md](./DEPLOY.md) để biết hướng dẫn đầy đủ.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Repo này được deploy tự động lên **Vercel** từ nhánh `main`.
+Xem [DEPLOY.md](./DEPLOY.md) để biết cách cấu hình.
 
-## Deploy on Vercel
+## Cấu trúc project
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+├── app/
+│   ├── globals.css       CSS toàn cục (dark theme)
+│   ├── layout.js         Root layout + metadata
+│   └── page.js           Entry point (Providers)
+├── components/
+│   ├── admin/            Các trang quản trị
+│   │   ├── AdminDashboard.jsx
+│   │   ├── AdminHome.jsx
+│   │   ├── ExamsPage.jsx
+│   │   ├── ExamMonitor.jsx
+│   │   ├── StudentsPage.jsx
+│   │   ├── QuestionsPage.jsx
+│   │   ├── SubjectsPage.jsx
+│   │   ├── GroupsPage.jsx
+│   │   ├── AdminResultsPage.jsx
+│   │   ├── ImportWayground.jsx
+│   │   └── SystemSettingsPage.jsx
+│   ├── student/          Các trang sinh viên
+│   │   ├── StudentDashboard.jsx
+│   │   ├── StudentExams.jsx
+│   │   ├── TakeExam.jsx
+│   │   └── StudentResults.jsx
+│   ├── AppRouter.jsx
+│   ├── LoginPage.jsx
+│   └── Sidebar.jsx
+└── lib/
+    ├── supabase.js       Supabase client + Demo data layer
+    ├── api.js            Async API wrapper (Supabase / Demo)
+    ├── auth.js           Auth context (Supabase Auth / Demo)
+    ├── settings.js       System settings context
+    └── toast.js          Toast notifications
+```

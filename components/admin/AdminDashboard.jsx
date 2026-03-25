@@ -10,6 +10,7 @@ import ExamsPage from './ExamsPage';
 import GroupsPage from './GroupsPage';
 import AdminResultsPage from './AdminResultsPage';
 import ExamMonitor from './ExamMonitor';
+import SystemSettingsPage from './SystemSettingsPage';
 
 export default function AdminDashboard() {
     const [activePage, setActivePage] = useState('dashboard');
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
             case 'groups': return <GroupsPage />;
             case 'results': return <AdminResultsPage />;
             case 'monitor': return <ExamMonitor examId={monitorExamId} onBack={handleBackFromMonitor} />;
+            case 'settings': return <SystemSettingsPage />;
             default: return <AdminHome />;
         }
     };
