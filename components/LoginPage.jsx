@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/settings';
+import { useToast } from '@/lib/toast';
 import { GraduationCap, Mail, Lock, User, BookOpen, Eye, EyeOff, CheckCircle2, AtSign } from 'lucide-react';
 
 export default function LoginPage() {
     const { login, register } = useAuth();
     const { settings } = useSettings();
+    const toast = useToast();
     const [isLogin, setIsLogin] = useState(true);
     const [emailOrId, setEmailOrId] = useState('');
     const [password, setPassword] = useState('');
@@ -35,7 +37,11 @@ export default function LoginPage() {
         try {
             if (isLogin) {
                 const result = await login(emailOrId, password);
-                if (!result.success) setError(result.message || 'Đăng nhập thất bại');
+                if (!result.success) {
+                    const msg = result.message || 'Đăng nhập thất bại';
+                    setError(msg);
+                    toast.error(msg);
+                }
             } else {
                 const result = await register({
                     email: emailOrId,
@@ -44,13 +50,18 @@ export default function LoginPage() {
                     student_id: studentId,
                 });
                 if (!result.success) {
-                    setError(result.message || 'Đăng ký thất bại');
-                } else if (result.needsConfirmation) {
+                    const msg = result.message || 'Đăng ký thất bại';
+                    setError(msg);
+                    toast.error(msg);
+                } else {
                     setSuccessMsg(result.message);
+                    toast.success(result.message);
                 }
             }
         } catch {
-            setError('Đã xảy ra lỗi. Vui lòng thử lại.');
+            const msg = 'Đã xảy ra lỗi. Vui lòng thử lại.';
+            setError(msg);
+            toast.error(msg);
         }
         setLoading(false);
     };
