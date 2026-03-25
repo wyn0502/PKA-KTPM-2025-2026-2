@@ -61,10 +61,12 @@ export default function QuestionsPage() {
         if (!hasCorrect) { toast.error('Phải có ít nhất 1 đáp án đúng'); return; }
 
         if (editing) {
-            await api.updateQuestion(editing.id, { ...form, answers: filledAnswers });
+            const res = await api.updateQuestion(editing.id, { ...form, answers: filledAnswers });
+            if (res?.success === false) { toast.error(res.error || 'Cập nhật thất bại'); return; }
             toast.success('Cập nhật câu hỏi thành công');
         } else {
-            await api.addQuestion({ ...form, answers: filledAnswers });
+            const res = await api.addQuestion({ ...form, answers: filledAnswers });
+            if (res?.success === false) { toast.error(res.error || 'Thêm câu hỏi thất bại'); return; }
             toast.success('Thêm câu hỏi thành công');
         }
         closeModal();
@@ -91,11 +93,11 @@ export default function QuestionsPage() {
     };
 
     const handleDelete = async (id) => {
-        if (confirm('Xóa câu hỏi này? Câu hỏi sẽ bị xóa khỏi các đề thi liên quan.')) {
-            await api.deleteQuestion(id);
-            toast.success('Đã xóa câu hỏi');
-            loadData();
-        }
+        if (!confirm('Xóa câu hỏi này? Câu hỏi sẽ bị xóa khỏi các đề thi liên quan.')) return;
+        const res = await api.deleteQuestion(id);
+        if (res?.success === false) { toast.error('Xóa thất bại'); return; }
+        toast.success('Đã xóa câu hỏi');
+        loadData();
     };
 
     const setCorrectAnswer = (index) => {

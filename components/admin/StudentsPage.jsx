@@ -28,26 +28,16 @@ export default function StudentsPage() {
     const fileInputRef = useRef(null);
     const toast = useToast();
 
-    useEffect(() => {
-        const load = async () => {
-            const [u, dept, cls, years] = await Promise.all([
-                api.getUsers(),
-                api.getDepartments(),
-                api.getClassNames(),
-                api.getAcademicYears(),
-            ]);
-            setUsers(u);
-            setDepartments(dept);
-            setClassNames(cls);
-            setAcademicYears(years);
-        };
-        load();
-    }, []);
-
     const loadData = async () => {
-        const u = await api.getUsers();
+        const u = await api.getStudents();
         setUsers(u);
+        // Derive filter options from student data
+        setDepartments([...new Set(u.map(s => s.department).filter(Boolean))].sort());
+        setClassNames([...new Set(u.map(s => s.class_name).filter(Boolean))].sort());
+        setAcademicYears([...new Set(u.map(s => s.academic_year).filter(Boolean))].sort());
     };
+
+    useEffect(() => { loadData(); }, []);
 
     const students = users.filter(u => u.role === 'student');
     const filtered = students.filter(s => {
@@ -68,11 +58,12 @@ export default function StudentsPage() {
         if (!form.email.trim()) { toast.error('Vui lòng nhập email'); return; }
 
         if (editing) {
-            await api.updateUser(editing.id, form);
+            const res = await api.updateStudent(editing.id, form);
+            if (res?.success === false) { toast.error(res.error || 'Cập nhật thất bại'); return; }
             toast.success('Cập nhật thông tin thành công');
         } else {
-            const result = await api.addUser(form);
-            if (!result.success) { toast.error(result.error); return; }
+            const result = await api.addStudent(form);
+            if (!result.success) { toast.error(result.error || 'Thêm sinh viên thất bại'); return; }
             toast.success('Thêm sinh viên thành công');
         }
         closeModal();
@@ -105,7 +96,7 @@ export default function StudentsPage() {
             return;
         }
         if (confirm(`Xóa sinh viên "${user.full_name}"?`)) {
-            await api.deleteUser(user.id);
+            await api.deleteStudent(user.id);
             toast.success('Đã xóa sinh viên');
             loadData();
         }
@@ -141,7 +132,7 @@ export default function StudentsPage() {
 
     const handleImportConfirm = async () => {
         if (!importData) return;
-        const result = await api.bulkImportUsers(importData);
+        const result = await api.importStudents(importData);
         setImportResult(result);
         if (result.imported > 0) {
             toast.success(`Đã import ${result.imported} sinh viên`);

@@ -44,23 +44,30 @@ export default function AdminResultsPage() {
         ? Math.round((filtered.filter(r => r.score >= 5).length / filtered.length) * 100)
         : 0;
 
-    const handleExport = async () => {
-        const data = await api.getExamResultsForExport(filterExam || null);
-        if (data.length === 0) {
+    const handleExport = () => {
+        if (filtered.length === 0) {
             toast.warning('Không có dữ liệu để xuất');
             return;
         }
+        const data = filtered.map(r => ({
+            'Họ tên': r.user_name || '',
+            'Mã SV': r.student_id || '',
+            'Email': r.user_email || '',
+            'Đề thi': r.exam_title || '',
+            'Điểm': r.score,
+            'Câu đúng': r.correct_count,
+            'Tổng câu': r.total_questions,
+            'Thời gian nộp': new Date(r.submitted_at).toLocaleString('vi-VN'),
+        }));
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Kết quả thi');
-
-        const colWidths = Object.keys(data[0]).map(key => ({
-            wch: Math.max(key.length, ...data.map(row => String(row[key]).length)) + 2
+        ws['!cols'] = Object.keys(data[0]).map(key => ({
+            wch: Math.max(key.length, ...data.map(row => String(row[key] ?? '').length)) + 2
         }));
-        ws['!cols'] = colWidths;
-
-        const fileName = filterExam
-            ? `ket-qua-thi-${exams.find(e => e.id === filterExam)?.title || 'all'}.xlsx`
+        const examTitle = exams.find(e => e.id === filterExam)?.title;
+        const fileName = examTitle
+            ? `ket-qua-${examTitle.replace(/[^a-zA-Z0-9]/g, '-')}.xlsx`
             : 'ket-qua-thi-tat-ca.xlsx';
         XLSX.writeFile(wb, fileName);
         toast.success(`Đã xuất ${data.length} kết quả ra file Excel`);
@@ -146,15 +153,15 @@ export default function AdminResultsPage() {
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <div className="avatar-sm">
-                                                    {r.user?.full_name?.split(' ').map(w => w[0]).join('').slice(-2)}
+                                                    {r.user_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user?.full_name}</div>
-                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.user?.student_id}</div>
+                                                    <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{r.user_name}</div>
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{r.student_id}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>{r.exam?.title}</td>
+                                        <td>{r.exam_title}</td>
                                         <td style={{ textAlign: 'center' }}>
                                             <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`}>
                                                 {r.score}/10
