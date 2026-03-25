@@ -180,7 +180,7 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
             });
         }, 1000);
         return () => clearInterval(timerRef.current);
-    }, [isSubmitted]);
+    }, [isSubmitted, exam]);
 
     const doSubmit = useCallback(async () => {
         if (submitCalledRef.current) return;
