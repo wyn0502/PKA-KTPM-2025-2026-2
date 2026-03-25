@@ -22,8 +22,8 @@ export default function StudentExams({ onStartExam }) {
         load();
     }, [user]);
 
-    const activeExams = exams.filter(e => !e.hasSubmitted);
-    const completedExams = exams.filter(e => e.hasSubmitted);
+    const activeExams = exams.filter(e => !e.already_done);
+    const completedExams = exams.filter(e => e.already_done);
 
     return (
         <div>
@@ -90,9 +90,9 @@ function ExamCard({ exam, onStart, completed }) {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', opacity: completed || isLocked ? 0.75 : 1 }}>
             <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                    {exam.subject && (
+                    {(exam.subject_name || exam.subjects?.name) && (
                         <span className="badge badge-info">
-                            <BookOpen size={12} /> {exam.subject.name}
+                            <BookOpen size={12} /> {exam.subject_name || exam.subjects?.name}
                         </span>
                     )}
                     {completed && (
