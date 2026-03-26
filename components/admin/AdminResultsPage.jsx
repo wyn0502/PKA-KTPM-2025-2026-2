@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
-import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert } from 'lucide-react';
+import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert, Trash2, RotateCcw, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminResultsPage() {
@@ -43,6 +43,44 @@ export default function AdminResultsPage() {
     const passRate = filtered.length > 0
         ? Math.round((filtered.filter(r => r.score >= 5).length / filtered.length) * 100)
         : 0;
+
+    const loadResults = async () => {
+        const r = await api.getAllResults();
+        setResults(r);
+    };
+
+    const handleRegrade = async (result) => {
+        if (!confirm(`Chấm điểm lại bài thi của "${result.user_name}" cho đề "${result.exam_title}"?`)) return;
+        const res = await api.regradeResult(result.id);
+        if (res.success) {
+            toast.success(`Đã chấm lại: ${res.score}/10 (${res.correct_count} câu đúng)`);
+            loadResults();
+        } else {
+            toast.error('Không thể chấm lại bài thi này');
+        }
+    };
+
+    const handleAllowRetake = async (result) => {
+        if (!confirm(`Xóa bài thi của "${result.user_name}" để cho phép làm lại đề "${result.exam_title}"?`)) return;
+        const res = await api.allowRetake(result.exam_id, result.user_id);
+        if (res.success) {
+            toast.success('Đã xóa kết quả, sinh viên có thể làm lại bài thi');
+            loadResults();
+        } else {
+            toast.error('Không thể thực hiện thao tác này');
+        }
+    };
+
+    const handleDelete = async (result) => {
+        if (!confirm(`Xóa vĩnh viễn bài thi của "${result.user_name}" cho đề "${result.exam_title}"?`)) return;
+        const res = await api.deleteResult(result.id);
+        if (res.success) {
+            toast.success('Đã xóa bài thi');
+            loadResults();
+        } else {
+            toast.error('Không thể xóa bài thi này');
+        }
+    };
 
     const handleExport = () => {
         if (filtered.length === 0) {
@@ -143,6 +181,7 @@ export default function AdminResultsPage() {
                                 <th style={{ textAlign: 'center' }}>Đúng</th>
                                 <th style={{ textAlign: 'center' }}>Gian lận</th>
                                 <th>Thời gian nộp</th>
+                                <th style={{ textAlign: 'center' }}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,7 +222,32 @@ export default function AdminResultsPage() {
                                         <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <Calendar size={14} />
-                                                {new Date(r.submitted_at).toLocaleString('vi-VN')}
+                                                {new Date(r.submitted_at).toLocaleString('vi-VN', { hour12: false })}
+                                            </div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className="btn-group">
+                                                <button
+                                                    className="btn btn-sm btn-info"
+                                                    title="Chấm điểm lại"
+                                                    onClick={() => handleRegrade(r)}
+                                                >
+                                                    <RefreshCw size={13} /> Chấm lại
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-warning"
+                                                    title="Cho sinh viên làm lại bài thi"
+                                                    onClick={() => handleAllowRetake(r)}
+                                                >
+                                                    <RotateCcw size={13} /> Làm lại
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    title="Xóa bài thi"
+                                                    onClick={() => handleDelete(r)}
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
