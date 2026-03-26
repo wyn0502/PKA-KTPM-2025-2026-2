@@ -8,19 +8,22 @@ import {
     Shuffle, BookOpen, Calendar, Lock
 } from 'lucide-react';
 
-export default function StudentExams({ onStartExam }) {
+export default function StudentExams({ onStartExam, previewMode = false }) {
     const { user } = useAuth();
     const [exams, setExams] = useState([]);
 
     useEffect(() => {
         const load = async () => {
-            if (user) {
+            if (previewMode) {
+                const data = await api.getAllActiveExams();
+                setExams(data);
+            } else if (user) {
                 const data = await api.getAvailableExams(user.id);
                 setExams(data);
             }
         };
         load();
-    }, [user]);
+    }, [user, previewMode]);
 
     const activeExams = exams.filter(e => !e.already_done);
     const completedExams = exams.filter(e => e.already_done);

@@ -46,7 +46,7 @@ export default function StudentDashboard({ previewMode = false, onExitPreview })
                 {activePage === 'results' ? (
                     <StudentResults />
                 ) : (
-                    <StudentExams onStartExam={startExam} />
+                    <StudentExams onStartExam={startExam} previewMode={previewMode} />
                 )}
             </main>
         </div>
