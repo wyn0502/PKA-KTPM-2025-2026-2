@@ -278,12 +278,56 @@ export default function ExamsPage({ onMonitorExam }) {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">Thời gian mở bài thi</label>
-                                    <input type="datetime-local" className="form-input" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={form.start_time ? form.start_time.slice(0, 10) : ''}
+                                            onChange={e => {
+                                                const date = e.target.value;
+                                                const time = form.start_time ? form.start_time.slice(11, 16) : '00:00';
+                                                setForm({ ...form, start_time: date ? `${date}T${time}` : '' });
+                                            }}
+                                        />
+                                        <input
+                                            type="time"
+                                            className="form-input"
+                                            style={{ maxWidth: 120 }}
+                                            value={form.start_time ? form.start_time.slice(11, 16) : ''}
+                                            onChange={e => {
+                                                const time = e.target.value;
+                                                const date = form.start_time ? form.start_time.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                                                setForm({ ...form, start_time: time ? `${date}T${time}` : '' });
+                                            }}
+                                        />
+                                    </div>
                                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Thời gian đóng bài thi</label>
-                                    <input type="datetime-local" className="form-input" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} />
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={form.end_time ? form.end_time.slice(0, 10) : ''}
+                                            onChange={e => {
+                                                const date = e.target.value;
+                                                const time = form.end_time ? form.end_time.slice(11, 16) : '00:00';
+                                                setForm({ ...form, end_time: date ? `${date}T${time}` : '' });
+                                            }}
+                                        />
+                                        <input
+                                            type="time"
+                                            className="form-input"
+                                            style={{ maxWidth: 120 }}
+                                            value={form.end_time ? form.end_time.slice(11, 16) : ''}
+                                            onChange={e => {
+                                                const time = e.target.value;
+                                                const date = form.end_time ? form.end_time.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                                                setForm({ ...form, end_time: time ? `${date}T${time}` : '' });
+                                            }}
+                                        />
+                                    </div>
                                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
                                 </div>
                             </div>
