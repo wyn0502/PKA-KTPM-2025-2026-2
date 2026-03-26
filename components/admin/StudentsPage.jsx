@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import {
     GraduationCap, Plus, Pencil, Trash2, X, Search,
     Mail, UserPlus, Upload, Download, FileSpreadsheet,
-    Building2, BookOpen, CalendarDays, Filter, Users
+    Building2, BookOpen, CalendarDays, Filter, Users, Eye, EyeOff, KeyRound
 } from 'lucide-react';
 
 export default function StudentsPage() {
@@ -22,7 +22,8 @@ export default function StudentsPage() {
     const [filterDept, setFilterDept] = useState('');
     const [filterClass, setFilterClass] = useState('');
     const [filterYear, setFilterYear] = useState('');
-    const [form, setForm] = useState({ full_name: '', email: '', student_id: '', department: '', class_name: '', academic_year: '', role: 'student' });
+    const [form, setForm] = useState({ full_name: '', email: '', student_id: '', department: '', class_name: '', academic_year: '', password: '', role: 'student' });
+    const [showPassword, setShowPassword] = useState(false);
     const [importData, setImportData] = useState(null);
     const [importResult, setImportResult] = useState(null);
     const fileInputRef = useRef(null);
@@ -73,7 +74,8 @@ export default function StudentsPage() {
     const closeModal = () => {
         setShowModal(false);
         setEditing(null);
-        setForm({ full_name: '', email: '', student_id: '', department: '', class_name: '', academic_year: '', role: 'student' });
+        setShowPassword(false);
+        setForm({ full_name: '', email: '', student_id: '', department: '', class_name: '', academic_year: '', password: '', role: 'student' });
     };
 
     const handleEdit = (user) => {
@@ -312,6 +314,33 @@ export default function StudentsPage() {
                                     {editing && <p className="form-helper">Email không thể thay đổi</p>}
                                 </div>
                             </div>
+
+                            {!editing && (
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <KeyRound size={14} style={{ marginRight: 4 }} />
+                                        Mật khẩu <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(mặc định: student123)</span>
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            className="form-input"
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="student123"
+                                            value={form.password}
+                                            onChange={e => setForm({ ...form, password: e.target.value })}
+                                            style={{ paddingRight: 40 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(p => !p)}
+                                            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Sinh viên dùng mật khẩu này để đăng nhập</small>
+                                </div>
+                            )}
 
                             <div className="form-row">
                                 <div className="form-group">
