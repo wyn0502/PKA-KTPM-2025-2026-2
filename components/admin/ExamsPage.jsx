@@ -41,19 +41,41 @@ export default function ExamsPage({ onMonitorExam }) {
         setGroups(g);
     };
 
+    // Parse "DD/MM/YYYY HH:mm" → "YYYY-MM-DDTHH:mm" (or null if empty/invalid)
+    const parseDisplayTime = (s) => {
+        if (!s || !s.trim()) return null;
+        const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+        if (!m) return undefined; // invalid
+        const [, d, mo, y, h, mi] = m;
+        return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${mi}`;
+    };
+
+    // Format "YYYY-MM-DDTHH:mm..." → "DD/MM/YYYY HH:mm"
+    const toDisplayTime = (iso) => {
+        if (!iso) return '';
+        const [datePart, timePart] = iso.split('T');
+        const [y, m, d] = datePart.split('-');
+        return `${d}/${m}/${y} ${(timePart || '00:00').slice(0, 5)}`;
+    };
+
     const handleSave = async () => {
         if (!form.title.trim()) { toast.error('Vui lòng nhập tên đề thi'); return; }
         if (!form.subject_id) { toast.error('Vui lòng chọn môn học'); return; }
         if (form.question_ids.length === 0) { toast.warning('Chưa chọn câu hỏi nào cho đề thi'); }
-        if (form.start_time && form.end_time && new Date(form.start_time) >= new Date(form.end_time)) {
+
+        const startIso = parseDisplayTime(form.start_time);
+        const endIso = parseDisplayTime(form.end_time);
+        if (form.start_time && startIso === undefined) { toast.error('Thời gian mở không đúng định dạng DD/MM/YYYY HH:mm'); return; }
+        if (form.end_time && endIso === undefined) { toast.error('Thời gian đóng không đúng định dạng DD/MM/YYYY HH:mm'); return; }
+        if (startIso && endIso && new Date(startIso) >= new Date(endIso)) {
             toast.error('Thời gian bắt đầu phải trước thời gian kết thúc');
             return;
         }
 
         const saveData = {
             ...form,
-            start_time: form.start_time || null,
-            end_time: form.end_time || null,
+            start_time: startIso || null,
+            end_time: endIso || null,
         };
 
         if (editing) {
@@ -81,8 +103,8 @@ export default function ExamsPage({ onMonitorExam }) {
             show_result: exam.show_result, status: exam.status,
             question_ids: exam.question_ids || [],
             group_ids: exam.group_ids || [],
-            start_time: exam.start_time ? exam.start_time.slice(0, 16) : '',
-            end_time: exam.end_time ? exam.end_time.slice(0, 16) : '',
+            start_time: toDisplayTime(exam.start_time),
+            end_time: toDisplayTime(exam.end_time),
         });
         setShowModal(true);
     };
@@ -278,56 +300,24 @@ export default function ExamsPage({ onMonitorExam }) {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">Thời gian mở bài thi</label>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <input
-                                            type="date"
-                                            className="form-input"
-                                            value={form.start_time ? form.start_time.slice(0, 10) : ''}
-                                            onChange={e => {
-                                                const date = e.target.value;
-                                                const time = form.start_time ? form.start_time.slice(11, 16) : '00:00';
-                                                setForm({ ...form, start_time: date ? `${date}T${time}` : '' });
-                                            }}
-                                        />
-                                        <input
-                                            type="time"
-                                            className="form-input"
-                                            style={{ maxWidth: 120 }}
-                                            value={form.start_time ? form.start_time.slice(11, 16) : ''}
-                                            onChange={e => {
-                                                const time = e.target.value;
-                                                const date = form.start_time ? form.start_time.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                                                setForm({ ...form, start_time: time ? `${date}T${time}` : '' });
-                                            }}
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="DD/MM/YYYY HH:mm"
+                                        value={form.start_time}
+                                        onChange={e => setForm({ ...form, start_time: e.target.value })}
+                                    />
                                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Thời gian đóng bài thi</label>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <input
-                                            type="date"
-                                            className="form-input"
-                                            value={form.end_time ? form.end_time.slice(0, 10) : ''}
-                                            onChange={e => {
-                                                const date = e.target.value;
-                                                const time = form.end_time ? form.end_time.slice(11, 16) : '00:00';
-                                                setForm({ ...form, end_time: date ? `${date}T${time}` : '' });
-                                            }}
-                                        />
-                                        <input
-                                            type="time"
-                                            className="form-input"
-                                            style={{ maxWidth: 120 }}
-                                            value={form.end_time ? form.end_time.slice(11, 16) : ''}
-                                            onChange={e => {
-                                                const time = e.target.value;
-                                                const date = form.end_time ? form.end_time.slice(0, 10) : new Date().toISOString().slice(0, 10);
-                                                setForm({ ...form, end_time: time ? `${date}T${time}` : '' });
-                                            }}
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="DD/MM/YYYY HH:mm"
+                                        value={form.end_time}
+                                        onChange={e => setForm({ ...form, end_time: e.target.value })}
+                                    />
                                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Để trống nếu không giới hạn</small>
                                 </div>
                             </div>
