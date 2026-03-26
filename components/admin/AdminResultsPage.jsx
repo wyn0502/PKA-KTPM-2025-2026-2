@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
-import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert, Trash2, RotateCcw, RefreshCw } from 'lucide-react';
+import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert, Trash2, RotateCcw, RefreshCw, X, Pencil } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminResultsPage() {
@@ -11,6 +11,8 @@ export default function AdminResultsPage() {
     const [exams, setExams] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterExam, setFilterExam] = useState('');
+    const [regradeTarget, setRegradeTarget] = useState(null); // result being regraded
+    const [manualScore, setManualScore] = useState('');
     const toast = useToast();
 
     useEffect(() => {
@@ -49,14 +51,36 @@ export default function AdminResultsPage() {
         setResults(r);
     };
 
-    const handleRegrade = async (result) => {
-        if (!confirm(`Chấm điểm lại bài thi của "${result.user_name}" cho đề "${result.exam_title}"?`)) return;
-        const res = await api.regradeResult(result.id);
+    const openRegradeModal = (result) => {
+        setRegradeTarget(result);
+        setManualScore(String(result.score));
+    };
+
+    const handleAutoRegrade = async () => {
+        const res = await api.regradeResult(regradeTarget.id);
         if (res.success) {
-            toast.success(`Đã chấm lại: ${res.score}/10 (${res.correct_count} câu đúng)`);
+            toast.success(`Đã chấm lại tự động: ${res.score}/10 (${res.correct_count} câu đúng)`);
+            setRegradeTarget(null);
             loadResults();
         } else {
             toast.error('Không thể chấm lại bài thi này');
+        }
+    };
+
+    const handleManualScore = async () => {
+        const score = parseFloat(manualScore);
+        if (isNaN(score) || score < 0 || score > 10) {
+            toast.error('Điểm phải từ 0 đến 10');
+            return;
+        }
+        const rounded = Math.round(score * 10) / 10;
+        const res = await api.updateScore(regradeTarget.id, rounded);
+        if (res.success) {
+            toast.success(`Đã cập nhật điểm: ${rounded}/10`);
+            setRegradeTarget(null);
+            loadResults();
+        } else {
+            toast.error('Không thể cập nhật điểm');
         }
     };
 
@@ -230,9 +254,9 @@ export default function AdminResultsPage() {
                                                 <button
                                                     className="btn btn-sm btn-info"
                                                     title="Chấm điểm lại"
-                                                    onClick={() => handleRegrade(r)}
+                                                    onClick={() => openRegradeModal(r)}
                                                 >
-                                                    <RefreshCw size={13} /> Chấm lại
+                                                    <Pencil size={13} /> Chấm lại
                                                 </button>
                                                 <button
                                                     className="btn btn-sm btn-warning"
@@ -255,6 +279,53 @@ export default function AdminResultsPage() {
                             })}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Regrade modal */}
+            {regradeTarget && (
+                <div className="modal-overlay" onClick={() => setRegradeTarget(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">Chấm điểm lại</h2>
+                            <button className="modal-close" onClick={() => setRegradeTarget(null)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', fontSize: '0.88rem' }}>
+                                <div><span style={{ color: 'var(--text-muted)' }}>Sinh viên: </span><strong>{regradeTarget.user_name}</strong></div>
+                                <div><span style={{ color: 'var(--text-muted)' }}>Đề thi: </span><strong>{regradeTarget.exam_title}</strong></div>
+                                <div style={{ marginTop: 4 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Điểm hiện tại: </span>
+                                    <span className={`badge ${regradeTarget.score >= 5 ? 'badge-success' : 'badge-danger'}`}>{regradeTarget.score}/10</span>
+                                    <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>({regradeTarget.correct_count}/{regradeTarget.total_questions} câu đúng)</span>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Nhập điểm mới (0 – 10)</label>
+                                <input
+                                    className="form-input"
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    step="0.1"
+                                    value={manualScore}
+                                    onChange={e => setManualScore(e.target.value)}
+                                    autoFocus
+                                    style={{ fontSize: '1.2rem', textAlign: 'center', fontWeight: 600 }}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ gap: 8 }}>
+                            <button className="btn btn-secondary" onClick={() => setRegradeTarget(null)}>Hủy</button>
+                            <button className="btn btn-secondary" onClick={handleAutoRegrade} title="Tính lại từ đáp án đã lưu">
+                                <RefreshCw size={15} /> Tính lại tự động
+                            </button>
+                            <button className="btn btn-primary" onClick={handleManualScore}>
+                                <Pencil size={15} /> Lưu điểm
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
