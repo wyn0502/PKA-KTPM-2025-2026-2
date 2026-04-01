@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/lib/api';
 import {
     ArrowLeft, Monitor, Users, CheckCircle2, Clock,
@@ -26,7 +26,7 @@ export default function ExamMonitor({ examId, onBack }) {
     const prevLogCountRef = useRef(0);
     const alertTimerRef = useRef(null);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         const [exam, sessions, results, logs] = await Promise.all([
             api.getExamById(examId),
             api.getActiveSessions(examId),
@@ -52,20 +52,15 @@ export default function ExamMonitor({ examId, onBack }) {
             ...results.map(r => r.user_id),
         ]).size;
         setData({ exam, activeSessions: sessions, completedCount: results.length, totalAssigned, completedResults: results });
-    };
-
-    useEffect(() => {
-        prevLogCountRef.current = -1; // -1 = first load, skip alert
-        loadData();
     }, [examId]);
 
     useEffect(() => {
-        clearInterval(intervalRef.current);
-        if (autoRefresh) {
-            intervalRef.current = setInterval(loadData, 3000);
-        }
+        prevLogCountRef.current = -1;
+        loadData();
+        if (!autoRefresh) return;
+        intervalRef.current = setInterval(loadData, 3000);
         return () => clearInterval(intervalRef.current);
-    }, [autoRefresh]);
+    }, [examId, autoRefresh, loadData]);
 
     if (!data) return <div className="loading-container"><div className="spinner" /></div>;
 

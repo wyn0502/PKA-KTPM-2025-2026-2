@@ -27,13 +27,17 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
     const [flagged, setFlagged] = useState(new Set());
     const [timeLeft, setTimeLeft] = useState(0);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isBanned, setIsBanned] = useState(false);
     const [result, setResult] = useState(null);
     const [cheatingWarnings, setCheatingWarnings] = useState(0);
     const [cheatingAlert, setCheatingAlert] = useState(null);
     const timerRef = useRef(null);
     const submitCalledRef = useRef(false);
     const cheatingCountRef = useRef(0);
+    const bannedRef = useRef(false);
     const startedAtRef = useRef(new Date().toISOString());
+    const doSubmitRef = useRef(null);
+    const CHEAT_THRESHOLD = 3;
 
     // Load exam and shuffle
     useEffect(() => {
@@ -59,15 +63,25 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
 
     // Log cheating event helper
     const logCheat = useCallback(async (type, detail) => {
-        if (!user || isSubmitted) return;
+        if (!user || submitCalledRef.current || bannedRef.current) return;
+        cheatingCountRef.current += 1;
+        const newCount = cheatingCountRef.current;
         if (!previewMode) {
             await api.logCheating({exam_id: examId, user_id: user.id, type, detail});
+            await api.updateSession(examId, user.id, { cheating_count: newCount });
         }
-        cheatingCountRef.current += 1;
-        setCheatingWarnings(cheatingCountRef.current);
+        setCheatingWarnings(newCount);
         setCheatingAlert(detail);
         setTimeout(() => setCheatingAlert(null), 4000);
-    }, [examId, user, isSubmitted]);
+
+        // Auto-ban when threshold exceeded
+        if (newCount >= CHEAT_THRESHOLD && !previewMode) {
+            bannedRef.current = true;
+            setIsBanned(true);
+            setCheatingAlert(`Bạn đã bị cấm thi do vi phạm ${CHEAT_THRESHOLD} lần!`);
+            setTimeout(() => doSubmitRef.current?.(true), 1500);
+        }
+    }, [examId, user, previewMode]);
 
     // Cheating detection: tab visibility
     useEffect(() => {
@@ -182,39 +196,14 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
         return () => clearInterval(timerRef.current);
     }, [isSubmitted, exam]);
 
-    const doSubmit = useCallback(async () => {
+    const doSubmit = useCallback(async (banned = false) => {
         if (submitCalledRef.current) return;
         submitCalledRef.current = true;
         clearInterval(timerRef.current);
-        // Exit fullscreen before showing result
         if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
         }
-        if (previewMode) {
-            // Calculate result locally without saving
-            let correctCount = 0;
-            const answersDetail = [];
-            questions.forEach(q => {
-                const userAnswer = answers[q.id];
-                const correctAnswer = q.answers.find(a => a.is_correct);
-                const isCorrect = userAnswer === correctAnswer?.id;
-                if (isCorrect) correctCount++;
-                answersDetail.push({
-                    question_id: q.id,
-                    question_content: q.content,
-                    user_answer_id: userAnswer || null,
-                    correct_answer_id: correctAnswer?.id,
-                    is_correct: isCorrect,
-                    answers: q.answers,
-                });
-            });
-            const totalQuestions = questions.length;
-            const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) / 10 : 0;
-            setResult({ score, total_questions: totalQuestions, correct_count: correctCount, answers_detail: answersDetail });
-            setIsSubmitted(true);
-            return;
-        }
-        // Calculate score (same logic as previewMode — api.submitExam needs full data)
+        // Calculate answers detail
         let correctCount = 0;
         const answersDetail = [];
         questions.forEach(q => {
@@ -223,28 +212,38 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
             const isCorrect = userAnswer === correctAnswer?.id;
             if (isCorrect) correctCount++;
             answersDetail.push({
-                question_id: q.id,
-                question_content: q.content,
+                question_id: q.id, question_content: q.content,
                 user_answer_id: userAnswer || null,
                 correct_answer_id: correctAnswer?.id,
-                is_correct: isCorrect,
-                answers: q.answers,
+                is_correct: isCorrect, answers: q.answers,
             });
         });
         const totalQuestions = questions.length;
-        const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) / 10 : 0;
+        const score = banned ? 0 : (totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) / 10 : 0);
+        const finalCorrect = banned ? 0 : correctCount;
+        const finalDetail = banned
+            ? [{ banned: true, reason: `Bị cấm thi do vi phạm gian lận ${CHEAT_THRESHOLD} lần` }]
+            : answersDetail;
 
+        if (previewMode) {
+            setResult({ score, total_questions: totalQuestions, correct_count: finalCorrect, answers_detail: finalDetail, banned });
+            setIsSubmitted(true);
+            return;
+        }
         const submitResult = await api.submitExam({
             exam_id: examId, user_id: user.id,
-            score, total_questions: totalQuestions, correct_count: correctCount,
-            answers_detail: answersDetail, started_at: startedAtRef.current,
+            score, total_questions: totalQuestions, correct_count: finalCorrect,
+            answers_detail: finalDetail, started_at: startedAtRef.current,
         });
         if (submitResult.success) {
             await api.removeSession(examId, user.id);
-            setResult(submitResult.result ?? { score, total_questions: totalQuestions, correct_count: correctCount, answers_detail: answersDetail });
+            setResult(submitResult.result ?? { score, total_questions: totalQuestions, correct_count: finalCorrect, answers_detail: finalDetail, banned });
             setIsSubmitted(true);
         }
     }, [answers, examId, user, previewMode, questions]);
+
+    // Keep ref updated so logCheat can call latest doSubmit
+    doSubmitRef.current = doSubmit;
 
     // Auto-submit when time runs out
     useEffect(() => {
@@ -303,6 +302,24 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
 
     // Show result screen
     if (isSubmitted && result) {
+        if (result.banned) {
+            return (
+                <div className="exam-container" style={{ padding: '32px 16px', display: 'flex', justifyContent: 'center' }}>
+                    <div className="card" style={{ maxWidth: 480, textAlign: 'center' }}>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}>🚫</div>
+                        <h2 style={{ color: 'var(--danger)', fontSize: '1.6rem', marginBottom: 8 }}>Bạn đã bị cấm thi</h2>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: 16 }}>
+                            Vi phạm gian lận <strong>{CHEAT_THRESHOLD} lần</strong> — Bài thi đã bị khoá và ghi nhận <strong>0 điểm</strong>.
+                        </p>
+                        <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--danger)', borderRadius: 'var(--radius)', padding: '12px 20px', marginBottom: 24 }}>
+                            <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--danger)' }}>0 / 10</span>
+                        </div>
+                        <button className="btn btn-secondary" onClick={onFinish}><ArrowLeft size={18} /> Quay lại</button>
+                    </div>
+                </div>
+            );
+        }
+
         const passed = result.score >= 5;
 
         return (
@@ -402,8 +419,16 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
                     👁 Chế độ xem trước (Giảng viên) — Kết quả sẽ không được lưu
                 </div>
             )}
+            {/* Ban overlay */}
+            {isBanned && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+                    <ShieldAlert size={64} style={{ color: 'var(--danger)' }} />
+                    <h2 style={{ color: 'var(--danger)', fontSize: '1.8rem' }}>Phiên thi bị khoá!</h2>
+                    <p style={{ color: '#fff', textAlign: 'center' }}>Vi phạm gian lận {CHEAT_THRESHOLD} lần. Bài thi đang được nộp với điểm 0...</p>
+                </div>
+            )}
             {/* Cheating alert toast */}
-            {cheatingAlert && (
+            {cheatingAlert && !isBanned && (
                 <div className="cheating-alert">
                     <ShieldAlert size={18} />
                     <span>{cheatingAlert} - Hành vi đã được ghi nhận!</span>
@@ -423,9 +448,10 @@ export default function TakeExam({ examId, onFinish, previewMode = false }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     {cheatingWarnings > 0 && (
-                        <div className="cheating-counter" title={`${cheatingWarnings} cảnh báo gian lận`}>
+                        <div className="cheating-counter" title={`${cheatingWarnings}/${CHEAT_THRESHOLD} vi phạm — bị cấm khi đạt ${CHEAT_THRESHOLD}`}
+                            style={{ background: cheatingWarnings >= CHEAT_THRESHOLD - 1 ? 'var(--danger)' : undefined }}>
                             <ShieldAlert size={16} />
-                            <span>{cheatingWarnings}</span>
+                            <span>{cheatingWarnings}/{CHEAT_THRESHOLD}</span>
                         </div>
                     )}
                     <div className={getTimerClass()}>
