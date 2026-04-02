@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
-import { BookOpen, Plus, Pencil, Trash2, X, FileQuestion } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, X, FileQuestion, ClipboardList } from 'lucide-react';
 
 export default function SubjectsPage() {
     const [subjects, setSubjects] = useState([]);
@@ -15,13 +15,15 @@ export default function SubjectsPage() {
     useEffect(() => { loadData(); }, []);
 
     const loadData = async () => {
-        const [subjs, questions] = await Promise.all([
+        const [subjs, questions, exams] = await Promise.all([
             api.getSubjects(),
             api.getQuestions(),
+            api.getExams(),
         ]);
         setSubjects(subjs.map(s => ({
             ...s,
             questionCount: questions.filter(q => q.subject_id === s.id).length,
+            examCount: exams.filter(e => e.subject_id === s.id).length,
         })));
     };
 
@@ -56,6 +58,10 @@ export default function SubjectsPage() {
     };
 
     const handleDelete = async (subject) => {
+        if (subject.examCount > 0) {
+            toast.error(`Không thể xóa — môn học đang được dùng bởi ${subject.examCount} đề thi. Xóa các đề thi đó trước.`);
+            return;
+        }
         if (!confirm(`Xóa môn học "${subject.name}"? Tất cả câu hỏi thuộc môn này cũng sẽ bị xóa.`)) return;
         const result = await api.deleteSubject(subject.id);
         if (result?.success === false) {
@@ -98,6 +104,7 @@ export default function SubjectsPage() {
                                 <th>Tên môn học</th>
                                 <th>Mô tả</th>
                                 <th style={{ textAlign: 'center' }}>Câu hỏi</th>
+                                <th style={{ textAlign: 'center' }}>Đề thi</th>
                                 <th style={{ textAlign: 'right' }}>Thao tác</th>
                             </tr>
                         </thead>
@@ -115,6 +122,11 @@ export default function SubjectsPage() {
                                     <td style={{ textAlign: 'center' }}>
                                         <span className="badge badge-info">
                                             <FileQuestion size={12} /> {subject.questionCount}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <span className={`badge ${subject.examCount > 0 ? 'badge-warning' : 'badge-secondary'}`}>
+                                            <ClipboardList size={12} /> {subject.examCount}
                                         </span>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
