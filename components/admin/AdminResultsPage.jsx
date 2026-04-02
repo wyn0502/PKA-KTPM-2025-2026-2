@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
-import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert, Trash2, RotateCcw, RefreshCw, X, Pencil } from 'lucide-react';
+import { BarChart3, Search, User, Trophy, Calendar, Download, ShieldAlert, Trash2, RotateCcw, RefreshCw, X, Pencil, Eye, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AdminResultsPage() {
@@ -11,8 +11,11 @@ export default function AdminResultsPage() {
     const [exams, setExams] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterExam, setFilterExam] = useState('');
-    const [regradeTarget, setRegradeTarget] = useState(null); // result being regraded
+    const [regradeTarget, setRegradeTarget] = useState(null);
     const [manualScore, setManualScore] = useState('');
+    const [detailTarget, setDetailTarget] = useState(null);   // result for cheat detail modal
+    const [detailLogs, setDetailLogs] = useState([]);
+    const [detailLoading, setDetailLoading] = useState(false);
     const toast = useToast();
 
     useEffect(() => {
@@ -49,6 +52,27 @@ export default function AdminResultsPage() {
     const loadResults = async () => {
         const r = await api.getAllResults();
         setResults(r);
+    };
+
+    const CHEAT_LABELS = {
+        tab_switch: 'Chuyển tab / cửa sổ',
+        copy: 'Sao chép nội dung',
+        paste: 'Dán nội dung',
+        cut: 'Cắt nội dung',
+        right_click: 'Nhấp chuột phải',
+        fullscreen_exit: 'Thoát toàn màn hình',
+        devtools: 'Mở DevTools / Xem nguồn',
+    };
+
+    const isBannedResult = (r) => Array.isArray(r.answers_detail) && r.answers_detail[0]?.banned === true;
+
+    const openDetailModal = async (result) => {
+        setDetailTarget(result);
+        setDetailLogs([]);
+        setDetailLoading(true);
+        const logs = await api.getCheatingLogsByUser(result.exam_id, result.user_id);
+        setDetailLogs(logs);
+        setDetailLoading(false);
     };
 
     const openRegradeModal = (result) => {
@@ -211,12 +235,13 @@ export default function AdminResultsPage() {
                         <tbody>
                             {filtered.map((r, i) => {
                                 const cheatingCount = r.cheating_count ?? 0;
+                                const banned = isBannedResult(r);
                                 return (
-                                    <tr key={r.id}>
+                                    <tr key={r.id} style={{ background: banned ? 'rgba(239,68,68,0.06)' : undefined }}>
                                         <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div className="avatar-sm">
+                                                <div className="avatar-sm" style={{ background: banned ? 'var(--danger)' : undefined }}>
                                                     {r.user_name?.split(' ').map(w => w[0]).join('').slice(-2)}
                                                 </div>
                                                 <div>
@@ -227,18 +252,30 @@ export default function AdminResultsPage() {
                                         </td>
                                         <td>{r.exam_title}</td>
                                         <td style={{ textAlign: 'center' }}>
-                                            <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`}>
-                                                {r.score}/10
-                                            </span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                                <span className={`badge ${r.score >= 5 ? 'badge-success' : 'badge-danger'}`}>
+                                                    {r.score}/10
+                                                </span>
+                                                {banned && (
+                                                    <span className="badge badge-danger" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                                        🚫 Bị cấm thi
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                            {r.correct_count}/{r.total_questions}
+                                            {banned ? <span style={{ color: 'var(--text-muted)' }}>—</span> : `${r.correct_count}/${r.total_questions}`}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             {cheatingCount > 0 ? (
-                                                <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                                    <ShieldAlert size={12} /> {cheatingCount}
-                                                </span>
+                                                <button
+                                                    className="badge badge-danger"
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', border: 'none', background: 'var(--danger)' }}
+                                                    onClick={() => openDetailModal(r)}
+                                                    title="Xem chi tiết vi phạm"
+                                                >
+                                                    <ShieldAlert size={12} /> {cheatingCount} vi phạm
+                                                </button>
                                             ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>0</span>
                                             )}
@@ -251,25 +288,18 @@ export default function AdminResultsPage() {
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <div className="btn-group">
-                                                <button
-                                                    className="btn btn-sm btn-info"
-                                                    title="Chấm điểm lại"
-                                                    onClick={() => openRegradeModal(r)}
-                                                >
+                                                {(cheatingCount > 0 || banned) && (
+                                                    <button className="btn btn-sm btn-danger" title="Chi tiết vi phạm" onClick={() => openDetailModal(r)}>
+                                                        <Eye size={13} /> Vi phạm
+                                                    </button>
+                                                )}
+                                                <button className="btn btn-sm btn-info" title="Chấm điểm lại" onClick={() => openRegradeModal(r)}>
                                                     <Pencil size={13} /> Chấm lại
                                                 </button>
-                                                <button
-                                                    className="btn btn-sm btn-warning"
-                                                    title="Cho sinh viên làm lại bài thi"
-                                                    onClick={() => handleAllowRetake(r)}
-                                                >
+                                                <button className="btn btn-sm btn-warning" title="Cho sinh viên làm lại bài thi" onClick={() => handleAllowRetake(r)}>
                                                     <RotateCcw size={13} /> Làm lại
                                                 </button>
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    title="Xóa bài thi"
-                                                    onClick={() => handleDelete(r)}
-                                                >
+                                                <button className="btn btn-sm btn-danger" title="Xóa bài thi" onClick={() => handleDelete(r)}>
                                                     <Trash2 size={13} />
                                                 </button>
                                             </div>
@@ -279,6 +309,107 @@ export default function AdminResultsPage() {
                             })}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Cheat detail modal */}
+            {detailTarget && (
+                <div className="modal-overlay" onClick={() => setDetailTarget(null)}>
+                    <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--danger)' }}>
+                                <ShieldAlert size={20} /> Chi tiết vi phạm gian lận
+                            </h2>
+                            <button className="modal-close" onClick={() => setDetailTarget(null)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            {/* Student + exam info */}
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius)', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: 180 }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 2 }}>Sinh viên</div>
+                                    <div style={{ fontWeight: 600 }}>{detailTarget.user_name}</div>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{detailTarget.student_id}</div>
+                                </div>
+                                <div style={{ flex: 1, minWidth: 180 }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 2 }}>Đề thi</div>
+                                    <div style={{ fontWeight: 600 }}>{detailTarget.exam_title}</div>
+                                </div>
+                                <div style={{ minWidth: 120 }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 2 }}>Kết quả</div>
+                                    <span className="badge badge-danger" style={{ fontSize: '1rem' }}>{detailTarget.score}/10</span>
+                                    {isBannedResult(detailTarget) && (
+                                        <div style={{ marginTop: 4 }}>
+                                            <span className="badge badge-danger" style={{ fontSize: '0.75rem' }}>🚫 Bị cấm thi</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ minWidth: 100 }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: 2 }}>Thời gian nộp</div>
+                                    <div style={{ fontSize: '0.82rem' }}>{new Date(detailTarget.submitted_at).toLocaleString('vi-VN', { hour12: false })}</div>
+                                </div>
+                            </div>
+
+                            {/* Ban reason */}
+                            {isBannedResult(detailTarget) && (
+                                <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--danger)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <AlertTriangle size={18} style={{ color: 'var(--danger)', flexShrink: 0 }} />
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: 'var(--danger)', fontSize: '0.9rem' }}>Lý do bị cấm thi</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                                            {detailTarget.answers_detail[0]?.reason || 'Vi phạm gian lận quá nhiều lần'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cheating logs */}
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <ShieldAlert size={15} style={{ color: 'var(--danger)' }} />
+                                Nhật ký vi phạm ({detailLogs.length} sự kiện)
+                            </div>
+
+                            {detailLoading ? (
+                                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>Đang tải...</div>
+                            ) : detailLogs.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                                    Không có nhật ký vi phạm nào được ghi lại
+                                </div>
+                            ) : (
+                                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+                                    <table className="table" style={{ marginBottom: 0 }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: 30 }}>#</th>
+                                                <th>Thời điểm</th>
+                                                <th>Loại vi phạm</th>
+                                                <th>Nội dung chi tiết</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {detailLogs.map((log, idx) => (
+                                                <tr key={log.id}>
+                                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{idx + 1}</td>
+                                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.83rem', color: 'var(--text-muted)' }}>
+                                                        {new Date(log.timestamp).toLocaleString('vi-VN', { hour12: false })}
+                                                    </td>
+                                                    <td>
+                                                        <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.78rem' }}>
+                                                            <ShieldAlert size={11} />
+                                                            {CHEAT_LABELS[log.type] || log.type}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{log.detail}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setDetailTarget(null)}>Đóng</button>
+                        </div>
+                    </div>
                 </div>
             )}
 
